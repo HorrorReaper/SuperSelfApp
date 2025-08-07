@@ -8,9 +8,15 @@ export default function DashboardPage() {
         // Redirect to sign-in page if not authenticated
         const checkAuth = async () => {
             const user = await getCurrentUser();
+            console.log("Current user:", user);
             if (!user) {
                 window.location.href = "/auth/sign-in";
             }
+            const { data: { session } } = await supabase.auth.getSession()
+            console.log('Session:', session)
+
+            const { data: userData } = await supabase.auth.getUser()
+            console.log('User:', userData?.user)
         };
         async function fetchModules() {
             // Fetch modules from the API or database

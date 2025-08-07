@@ -2,9 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { get } from 'http';
-import { getCurrentUser } from '@/lib/auth';
 import CompleteLessonButton from '@/components/lesson/CompleteLessonButton';
+import { getCurrentUser } from '@/lib/auth';
 export default function LessonPage(){
     const {id} = useParams(); // Get the lesson ID from the URL parameters
     const [lesson, setLesson] = useState<any>(null);
@@ -12,9 +11,9 @@ export default function LessonPage(){
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser()
-      if (error) {
-        console.error('Error fetching user:', error.message)
+      const user = await getCurrentUser();
+      if (!user) {
+        console.error('Error fetching user:')
       } else {
         setUser(user)
       }
@@ -48,7 +47,7 @@ export default function LessonPage(){
           </div>
             <h1 className='text-3xl font-bold'>{lesson.title}</h1>
             <p>{lesson.description}</p>
-            <CompleteLessonButton lessonId={lesson.id} />
+            <CompleteLessonButton lessonId={lesson.id}  />
         </div>
     )
 }

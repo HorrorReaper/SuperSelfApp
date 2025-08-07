@@ -1,7 +1,7 @@
-import { createSupabaseClient } from './supabase'
+import { createSupabaseClient, supabase } from './supabase'
 
 export async function signUp(email: string, password: string) {
-  const supabase = createSupabaseClient()
+  //const supabase = createSupabaseClient()
   const { data, error } = await supabase.auth.signUp({
     email,
     password
@@ -10,7 +10,7 @@ export async function signUp(email: string, password: string) {
 } // Funktion um einen neuen Benutzer zu registrieren mit E-Mail und Passwort
 
 export async function signIn(email: string, password: string) {
-  const supabase = createSupabaseClient()
+  //const supabase = createSupabaseClient()
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
@@ -19,13 +19,13 @@ export async function signIn(email: string, password: string) {
 } // Funktion um sich mit E-Mail und Passwort anzumelden
 
 export async function signOut() {
-  const supabase = createSupabaseClient()
+  //const supabase = createSupabaseClient()
   const { error } = await supabase.auth.signOut()
   return { error }
 } // Funktion um sich abzumelden
 
 export async function getCurrentUser() {
-  const supabase = createSupabaseClient()
+  //const supabase = createSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   return user
 } // Funktion um den aktuellen Benutzer abzurufen
