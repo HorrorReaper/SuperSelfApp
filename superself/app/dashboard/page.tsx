@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import ModuleCard from "@/components/dashboard/ModuleCard";
 
 export default function DashboardPage() {
     const [modules, setModules] = useState<any[]>([]);
@@ -68,26 +69,8 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold">Welcome back 💪</h1>
             <h2 className="text-lg mt-4 font-bold">Your Learning Journey</h2>
 
-            {enrichedModules.map((mod) => (
-                <div key={mod.id} className="border rounded-xl p-4 space-y-2 mt-4">
-                    <h2 className="text-xl font-semibold">{mod.title}</h2>
-                    <p className="text-sm text-muted-foreground">{mod.description}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {mod.module_lessons.map((m1) => (
-                            <a
-                                key={m1.lesson_id}
-                                href={`/lessons/${m1.lessons.id}`}
-                                className="p-3 rounded-lg bg-muted hover:bg-muted/70 transition"
-                            >
-                                <h3 className="text-lg font-bold">{m1.lessons.title}</h3>
-                                <p className="text-sm font-light">{m1.lessons.description}</p>
-                                <p className="text-xs mt-1 text-gray-500">
-                                    Status: <span className="capitalize">{m1.lessons.status}</span>
-                                </p>
-                            </a>
-                        ))}
-                    </div>
-                </div>
+            {enrichedModules.map((module) => (
+                <ModuleCard key={module.id} module={module} />
             ))}
         </div>
     );
