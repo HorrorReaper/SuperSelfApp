@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import ModuleCard from "@/components/dashboard/ModuleCard";
+import JourneyCard from "@/components/dashboard/JourneyCard";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
     const [modules, setModules] = useState<any[]>([]);
@@ -72,6 +74,8 @@ export default function DashboardPage() {
             {enrichedModules.map((module) => (
                 <ModuleCard key={module.id} module={module} />
             ))}
+            {/* Beautiful Journey Card */}
+            <JourneyCard />
         </div>
     );
 }
