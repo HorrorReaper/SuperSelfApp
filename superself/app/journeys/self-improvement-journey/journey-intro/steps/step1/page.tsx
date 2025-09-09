@@ -1,6 +1,8 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { saveIntake } from "@/lib/local";
+import type { Intake, KeystoneHabit, PrimaryGoal } from "@/lib/types";
 
 type ChipProps = {
   label: string;
@@ -24,11 +26,11 @@ function Chip({ label, selected, onClick }: ChipProps) {
   );
 }
 
-const PRIMARY_GOALS: { key: string; title: string; desc: string }[] = [
+const PRIMARY_GOALS: { key: PrimaryGoal; title: string; desc: string }[] = [
   { key: "focus", title: "Focus & productivity", desc: "Daily deep-work momentum" },
   { key: "sleep", title: "Sleep consistency", desc: "Stabilize your sleep window" },
   { key: "movement", title: "Daily movement/steps", desc: "Build an active baseline" },
-  { key: "eating", title: "Healthy eating basics", desc: "Simple, sustainable nutrition" },
+  { key: "nutrition", title: "Healthy eating basics", desc: "Simple, sustainable nutrition" },
   { key: "stress", title: "Stress reduction", desc: "Lower stress with micro-practices" },
   { key: "learning", title: "Learning habit", desc: "Show up for your curiosity" },
 ];
@@ -41,7 +43,7 @@ function getHabitOptions(goalKey: string): string[] {
       return ["6k steps", "2-minute mobility", "10 push-ups"];
     case "sleep":
       return ["Lights-down hour", "No screens 30m before bed", "Wake at same time"];
-    case "eating":
+  case "nutrition":
       return ["Protein-first meal", "1 veggie add-on", "No sugary drink"];
     case "stress":
       return ["2-minute breathing", "Short walk break", "Gratitude note"];
@@ -97,7 +99,7 @@ const REMINDER_CHANNEL = ["Email", "Push (later)", "None"];
 const REMINDER_FREQ = ["Daily nudge", "Only if missed", "Weekly digest"];
 
 export default function Step1Page() {
-  const [primaryGoal, setPrimaryGoal] = useState<string>("");
+  const [primaryGoal, setPrimaryGoal] = useState<PrimaryGoal | "">("");
   const habitOptions = useMemo(() => getHabitOptions(primaryGoal), [primaryGoal]);
   const [keystoneHabit, setKeystoneHabit] = useState<string>("");
   const [timeWindow, setTimeWindow] = useState<string>("none");
@@ -121,7 +123,7 @@ export default function Step1Page() {
     if (primaryGoal === "focus") return "Baseline minutes of focused work";
     if (primaryGoal === "learning") return "Baseline minutes of learning";
     if (primaryGoal === "movement") return "Baseline minutes of movement";
-    if (primaryGoal === "eating") return "Baseline healthy meals per day";
+    if (primaryGoal === "nutrition") return "Baseline healthy meals per day";
     if (primaryGoal === "stress") return "Baseline minutes of stress relief";
     return "Baseline (units vary)";
   }, [keystoneHabit, primaryGoal]);
@@ -133,6 +135,17 @@ export default function Step1Page() {
       if (list.length >= max) return;
       setList([...list, item]);
     }
+  }
+
+  function mapHabitToKey(habitLabel: string): KeystoneHabit | null {
+    const l = habitLabel.toLowerCase();
+    if (l.includes("step")) return "steps";
+    if (l.includes("focus") || l.includes("25")) return "focus_block";
+    if (l.includes("mobility")) return "mobility";
+    if (l.includes("light") || l.includes("sleep")) return "lights_down";
+    if (l.includes("learn")) return "learning_minutes";
+    if (l.includes("plan")) return "planning";
+    return null;
   }
 
   function handleSave() {
@@ -150,27 +163,50 @@ export default function Step1Page() {
       return;
     }
 
-    const payload = {
-      primaryGoal,
-      keystoneHabit,
-      timeWindow,
-      baseline,
+    const habitKey = mapHabitToKey(keystoneHabit);
+    if (!habitKey) {
+      setError("Please choose a supported keystone habit (or rename it to match a known type).");
+      return;
+    }
+
+    const reminders: Intake["reminders"] = {
+      channel: reminderChannel.toLowerCase().startsWith("email")
+        ? "email"
+        : reminderChannel.toLowerCase().startsWith("push")
+        ? "push"
+        : "none",
+      frequency: reminderFreq.toLowerCase().includes("missed")
+        ? "missed"
+        : reminderFreq.toLowerCase().includes("weekly")
+        ? "weekly"
+        : "daily",
+    };
+
+    const baselineObj: Intake["baseline"] = (() => {
+      if (habitKey === "steps") return { steps: baseline };
+      if (habitKey === "lights_down") return { sleepWindow: baseline };
+      return { minutes: baseline };
+    })();
+
+    const intake: Intake = {
+      goal: primaryGoal as PrimaryGoal,
+      keystoneHabit: habitKey,
+      timeWindow: timeWindow as Intake["timeWindow"],
+      reminders,
+      baseline: baselineObj,
       constraints,
-      energy,
-      motivation,
-      reminderChannel,
-      reminderFreq,
+      energyPeak: energy ? (energy.toLowerCase() as Intake["energyPeak"]) : undefined,
+      motivation: (motivation || "solo") as Intake["motivation"],
       barriers,
       supports,
       graceDay,
-      consentPersonalize,
-      consentShare,
+      note: undefined,
     };
+
     try {
-      localStorage.setItem("selfImprovementStep1", JSON.stringify(payload));
-      console.log("Saved self-improvement step1:", payload);
-      // Optionally navigate to next step when available
-      // window.location.href = "/journeys/self-improvement-journey/journey-intro/steps/step2";
+      saveIntake(intake);
+      console.log("Saved Intake for challenge:", intake);
+      window.location.href = "/journeys/self-improvement-journey";
     } catch (e) {
       setError("Couldn't save locally. Please try again.");
     }
