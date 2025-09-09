@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import { fetchModulesWithProgress, Module } from "@/lib/dashboard";
 import ModuleCard from "@/components/dashboard/ModuleCard";
+import JourneyCard from "@/components/dashboard/JourneyCard";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
@@ -59,7 +61,8 @@ export default function DashboardPage() {
             {!loading && !error && enrichedModules.map((module) => (
                 <ModuleCard key={module.id} module={module} />
             ))}
-            <h2>Your Challenge</h2>
+            {/* Beautiful Journey Card */}
+            <JourneyCard />
         </div>
     );
 }
