@@ -56,10 +56,19 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
     if (!open) return;
     // Load existing timer (or initialize) and sync minutes state so UI reflects saved target
     let t = loadTimer() ?? initTimer(defaultMinutes * 60);
+    // Normalize missing fields from older saves
+    if (t && !Array.isArray((t as any).todos)) {
+      (t as any).todos = [];
+      saveTimer(t as any);
+    }
     if (!t.isRunning && t.targetSeconds !== defaultMinutes * 60) {
       resetTimer(defaultMinutes * 60);
       // re-load after reset
       t = loadTimer() ?? initTimer(defaultMinutes * 60);
+      if (t && !Array.isArray((t as any).todos)) {
+        (t as any).todos = [];
+        saveTimer(t as any);
+      }
     }
     setState(t);
     // ensure the minutes shown in UI match the targetSeconds of the loaded timer
@@ -223,10 +232,10 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
                 <Button onClick={addTodoLocal}>Add</Button>
               </div>
               <ul className="space-y-2">
-                {state.todos.length === 0 ? (
+                {Array.isArray(state.todos) && state.todos.length === 0 ? (
                   <li className="text-xs text-muted-foreground">Tip: Add 1–3 small tasks to stay focused.</li>
                 ) : (
-                  state.todos.map((t) => (
+                  (Array.isArray(state.todos) ? state.todos : []).map((t) => (
                     <li key={t.id} className="flex items-center gap-2">
                       <Checkbox checked={t.done} onCheckedChange={() => {toggleTodoLocal(t.id); playSound("/sounds/check.mp3");}} />
                       <span className={`flex-1 text-sm ${t.done ? "line-through text-muted-foreground" : ""}`}>{t.text}</span>
