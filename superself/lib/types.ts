@@ -29,21 +29,49 @@ export type Intake = {
   note?: string;
 };
 
-export type DayProgress = {
-  day: number; // 1..30
-  completed: boolean;
-  habitMinutes?: number;
-  proofUrl?: string;
-  mood?: number; // 1..5
-  energy?: number; // 1..5
-  notes?: string;
-  dateISO: string; // yyyy-MM-dd
+export type TinyHabitType = "timeboxing" | "lights_down" | "mobility";
+
+export type TinyHabitConfig = {
+  type: TinyHabitType;
+  startedOnDay: number;
+  active: boolean;
+};
+
+export type TinyHabitCompletion = {
+  day: number;
+  done: boolean;
+  minutes?: number;
+  note?: string;
+};
+
+export type MicroBrief = {
+  day: number;
+  title: string;
+  tldr: string; // 1-sentence summary
+  content: string; // short tips 60–120s text
+  actionLabel: string; // button label for the action
 };
 
 export type ChallengeState = {
-  startDateISO: string; // yyyy-MM-dd
-  todayDay: number; // computed from startDate
+  startDateISO: string;
+  todayDay: number;
   streak: number;
-  graceUsedThisWeek: number; // 0..1
-  days: DayProgress[]; // length up to 30
+  graceUsedThisWeek: number;
+  days: DayProgress[];
+  tinyHabit?: TinyHabitConfig | null;                // NEW
+  tinyHabitCompletions?: TinyHabitCompletion[];      // NEW
 };
+
+export type DayProgress = {
+  day: number;
+  completed: boolean;
+  habitMinutes?: number;
+  proofUrl?: string;
+  mood?: number;
+  energy?: number;
+  notes?: string;
+  dateISO: string;
+  // Optional: support multiple sessions later
+  sessions?: { id: string; minutes: number; startedAt: string; endedAt?: string }[];
+};
+

@@ -54,11 +54,16 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
   // Initialize or load the timer when opening
   React.useEffect(() => {
     if (!open) return;
-    const t = loadTimer() ?? initTimer(defaultMinutes * 60);
+    // Load existing timer (or initialize) and sync minutes state so UI reflects saved target
+    let t = loadTimer() ?? initTimer(defaultMinutes * 60);
     if (!t.isRunning && t.targetSeconds !== defaultMinutes * 60) {
       resetTimer(defaultMinutes * 60);
+      // re-load after reset
+      t = loadTimer() ?? initTimer(defaultMinutes * 60);
     }
-    setState(loadTimer());
+    setState(t);
+    // ensure the minutes shown in UI match the targetSeconds of the loaded timer
+    setMinutes(Math.round((t?.targetSeconds ?? defaultMinutes * 60) / 60));
     const id = setInterval(() => setTick((x) => x + 1), 500);
     return () => clearInterval(id);
   }, [open, defaultMinutes]);
@@ -106,7 +111,20 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
   }
 
   function handleMinutesChange(v: number[]) {
-    setMinutes(v[0]);
+    const newMinutes = v[0];
+    setMinutes(newMinutes);
+
+    // Persist immediately if the timer isn't running
+    const t = loadTimer();
+    if (!t) return;
+    if (t.isRunning) return; // don't change target while running
+
+    const newState: TimerState = {
+      ...t,
+      targetSeconds: newMinutes * 60,
+    };
+    saveTimer(newState);
+    setState(newState);
   }
 
   function handleApplyMinutes() {
@@ -144,6 +162,8 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTitle>Focus Timer</DialogTitle>
+      <DialogDescription>Use the timer to focus on your challenge.</DialogDescription>
       <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
         {/* Momentum-style hero */}
         <div
@@ -176,7 +196,7 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
           <div className="rounded-md border p-3">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium">Target duration</div>
-              <div className="text-sm">{Math.round((loadTimer()?.targetSeconds ?? defaultMinutes * 60) / 60)} min</div>
+              <div className="text-sm">{minutes} min</div>
             </div>
             <div className="pt-2">
               <Slider value={[minutes]} min={5} max={60} step={5} onValueChange={handleMinutesChange} disabled={running} />
@@ -208,7 +228,7 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
                 ) : (
                   state.todos.map((t) => (
                     <li key={t.id} className="flex items-center gap-2">
-                      <Checkbox checked={t.done} onCheckedChange={() => toggleTodoLocal(t.id)} />
+                      <Checkbox checked={t.done} onCheckedChange={() => {toggleTodoLocal(t.id); playSound("/sounds/check.mp3");}} />
                       <span className={`flex-1 text-sm ${t.done ? "line-through text-muted-foreground" : ""}`}>{t.text}</span>
                       <Button size="icon" variant="ghost" onClick={() => deleteTodoLocal(t.id)} aria-label="Delete">
                         ✕

@@ -1,39 +1,31 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { ProgressTiles } from "@/components/sichallenge/progress-tiles";
 import { ChallengeTodayCard } from "@/components/sichallenge/challenge-today-card";
 import { WeeklyRetroCard } from "@/components/sichallenge/weekly-retro-card";
+import { MicroBriefCard } from "@/components/sichallenge/micro-brief-card";
+import { TinyHabitPrompt } from "@/components/sichallenge/tiny-habit-prompt";
+import { TinyHabitCard } from "@/components/sichallenge/tiny-habit-card";
+
 import { loadIntake, loadState, saveState } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
+import { getBriefForDay } from "@/lib/brief";
+import { completeTinyHabit, setTinyHabit } from "@/lib/local";
+
 import type { ChallengeState, Intake } from "@/lib/types";
-import { format } from "date-fns";
 import { TimerModal } from "@/components/sichallenge/timer-modal";
-import { getProgress } from "@/lib/timer";
 
 export default function DashboardPage() {
   const [intake, setIntake] = useState<Intake | null>(null);
   const [state, setState] = useState<ChallengeState | null>(null);
   const [timerOpen, setTimerOpen] = useState(false);
   const [canComplete, setCanComplete] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
 
-function handleStartTimer() {
-  setTimerOpen(true);
-}
-
-function handleReachedEighty() {
-  setCanComplete(true);
-}
-
-function handleFinished() {
-  setCanComplete(true);
-}
-
-  // Load from localStorage
   useEffect(() => {
     const i = loadIntake<Intake>();
     setIntake(i);
@@ -42,13 +34,21 @@ function handleFinished() {
       s = initChallengeState();
       saveState(s);
     }
+    // Compute today and decide on prompt
+    const todayDay = computeTodayDay(s.startDateISO);
+    s.todayDay = todayDay;
+    saveState(s);
     setState(s);
+
+    // Open tiny habit prompt if Day 8 and no tiny habit selected
+    if (todayDay === 8 && (!s.tinyHabit || !s.tinyHabit.active)) {
+      setPromptOpen(true);
+    }
   }, []);
 
-  // Derive today/day/adherence/streak
   const derived = useMemo(() => {
     if (!state) return null;
-    const todayDay = computeTodayDay(state.startDateISO);
+    const todayDay = state.todayDay;
     const dayRec = ensureDay(state.days, todayDay);
     const streak = computeStreak(state.days);
     const adh = adherence(state.days, todayDay);
@@ -59,7 +59,7 @@ function handleFinished() {
     return (
       <div className="max-w-screen-sm mx-auto p-4">
         <h1 className="text-xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-2">Loading your challenge…</p>
+        <p className="text-sm text-muted-foreground mt-2">Loading…</p>
       </div>
     );
   }
@@ -74,7 +74,7 @@ function handleFinished() {
       case "mobility":
         return 5;
       case "steps":
-        return 30; // treat as 30 active minutes
+        return 30;
       case "lights_down":
       case "planning":
         return 10;
@@ -104,19 +104,48 @@ function handleFinished() {
     const next = { ...state };
     const rec = ensureDay(next.days, todayDay);
     rec.completed = true;
-    rec.habitMinutes = targetMinutes;
+    rec.habitMinutes = Math.max(rec.habitMinutes ?? 0, targetMinutes);
     next.streak = computeStreak(next.days);
-    next.todayDay = todayDay;
     setState(next);
     saveState(next);
   }
 
-  function startTimer() {
-    // Placeholder: integrate your timer modal/page later
-    alert(`Start a ${targetMinutes}-minute timer (stub).`);
+  function handleStartTimer() {
+    setTimerOpen(true);
   }
 
-  const weekIndex = Math.ceil(todayDay / 7);
+  function handleReachedEighty() {
+    setCanComplete(true);
+  }
+
+  function handleFinished() {
+    setCanComplete(true);
+  }
+
+  function handleTinySelect(type: "timeboxing" | "lights_down" | "mobility") {
+    setTinyHabit({ type, startedOnDay: todayDay, active: true });
+    const s = loadState<ChallengeState>();
+    if (s) setState(s);
+    setPromptOpen(false);
+  }
+
+  function handleTinySkip() {
+    setPromptOpen(false);
+  }
+
+  // Tiny habit completion for today
+  const tiny = state.tinyHabit?.active ? state.tinyHabit : null;
+  const tinyDone =
+    state.tinyHabitCompletions?.find((x) => x.day === todayDay)?.done ?? false;
+
+  function handleTinyComplete(done: boolean) {
+    completeTinyHabit(todayDay, done);
+    const s = loadState<ChallengeState>();
+    if (s) setState(s);
+  }
+
+  // Micro brief only for days 1..7
+  const brief = todayDay <= 7 ? getBriefForDay(todayDay) : null;
 
   return (
     <div className="max-w-screen-sm mx-auto p-4 space-y-4">
@@ -136,6 +165,17 @@ function handleFinished() {
 
       <ProgressTiles day={todayDay} streak={streak} adherencePct={adh} />
 
+      {brief ? (
+        <MicroBriefCard
+          title={brief.title}
+          tldr={brief.tldr}
+          content={brief.content}
+          actionLabel={brief.actionLabel}
+          onAction={handleStartTimer}
+          onSkip={handleStartTimer}
+        />
+      ) : null}
+
       <ChallengeTodayCard
         title={titleMap[intake.keystoneHabit]}
         description={descMap[intake.keystoneHabit]}
@@ -146,6 +186,28 @@ function handleFinished() {
         canComplete={canComplete || !!dayRec.completed}
       />
 
+      {tiny ? (
+        <TinyHabitCard
+          habitType={tiny.type}
+          day={todayDay}
+          done={tinyDone}
+          onComplete={handleTinyComplete}
+        />
+      ) : null}
+
+      <Separator />
+
+      {todayDay % 7 === 0 ? (
+        <WeeklyRetroCard weekIndex={Math.ceil(todayDay / 7)} onOpen={() => alert("Open weekly retro (stub)")} />
+      ) : null}
+
+      <TinyHabitPrompt
+        open={promptOpen}
+        onOpenChange={setPromptOpen}
+        onSelect={handleTinySelect}
+        onSkip={handleTinySkip}
+      />
+
       <TimerModal
         open={timerOpen}
         onOpenChange={setTimerOpen}
@@ -153,31 +215,7 @@ function handleFinished() {
         onReachedEighty={handleReachedEighty}
         onFinished={handleFinished}
       />
-
-      <Separator />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>This week</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="text-sm text-muted-foreground">
-            Hit your habit at least 5 days. You have {intake.graceDay ? 1 : 0} grace day per week.
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={() => alert("Open schedule (stub)")}>
-              Schedule tomorrow
-            </Button>
-            <Button variant="ghost" onClick={() => alert("Open notes (stub)")}>
-              Add note
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {todayDay % 7 === 0 ? (
-        <WeeklyRetroCard weekIndex={weekIndex} onOpen={() => alert("Open weekly retro (stub)")} />
-      ) : null}
+      <WeeklyRetroCard weekIndex={Math.ceil(todayDay / 7)} onOpen={() => alert("Open weekly retro (stub)")} />
     </div>
   );
 }

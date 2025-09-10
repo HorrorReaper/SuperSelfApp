@@ -27,7 +27,7 @@ export function ChallengeTodayCard({ title, description, targetMinutes, complete
         </div>
       </CardContent>
       <CardFooter className="gap-2">
-        <Button variant="secondary" onClick={onStart} disabled={completed}>
+        <Button variant="secondary" onClick={onStart}>
           Start timer
         </Button>
         <Button onClick={onComplete} disabled={completed || !canComplete}>
