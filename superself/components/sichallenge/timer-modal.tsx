@@ -171,8 +171,8 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTitle>Focus Timer</DialogTitle>
-      <DialogDescription>Use the timer to focus on your challenge.</DialogDescription>
+  <DialogTitle className="sr-only">Focus Timer</DialogTitle>
+  <DialogDescription className="sr-only">Use the timer to focus on your challenge.</DialogDescription>
       <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
         {/* Momentum-style hero */}
         <div

@@ -6,10 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProgressTiles } from "@/components/sichallenge/progress-tiles";
 import { ChallengeTodayCard } from "@/components/sichallenge/challenge-today-card";
-import { WeeklyRetroCard } from "@/components/sichallenge/weekly-retro-card";
+import { WeeklyRetroModal } from "@/components/sichallenge/weekly-retro-modal";
 import { MicroBriefCard } from "@/components/sichallenge/micro-brief-card";
 import { TinyHabitPrompt } from "@/components/sichallenge/tiny-habit-prompt";
 import { TinyHabitCard } from "@/components/sichallenge/tiny-habit-card";
+import { getLast7Array } from "@/lib/sparkline";
+import { MinutesSparklineCard } from "@/components/sichallenge/minutes-sparkline-card";
+import { MiniTimerWidget } from "@/components/sichallenge/mini-timer-widget";
 
 import { loadIntake, loadState, saveState } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
@@ -25,6 +28,7 @@ export default function DashboardPage() {
   const [timerOpen, setTimerOpen] = useState(false);
   const [canComplete, setCanComplete] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
+  const [retroOpen, setRetroOpen] = useState(false);
 
   useEffect(() => {
     const i = loadIntake<Intake>();
@@ -45,6 +49,12 @@ export default function DashboardPage() {
       setPromptOpen(true);
     }
   }, []);
+  useEffect(() => {
+    // Auto-open on week boundary
+    if (state?.todayDay && state.todayDay % 7 === 0) {
+      setRetroOpen(true);
+    }
+  }, [state?.todayDay]);
 
   const derived = useMemo(() => {
     if (!state) return null;
@@ -54,6 +64,7 @@ export default function DashboardPage() {
     const adh = adherence(state.days, todayDay);
     return { todayDay, dayRec, streak, adh };
   }, [state]);
+  const last7 = useMemo(() => (state ? getLast7Array(state, derived?.todayDay ?? state.todayDay) : []), [state, derived?.todayDay]);
 
   if (!intake || !state || !derived) {
     return (
@@ -147,18 +158,22 @@ export default function DashboardPage() {
   // Micro brief only for days 1..7
   const brief = todayDay <= 7 ? getBriefForDay(todayDay) : null;
 
+  
+
   return (
     <div className="max-w-screen-sm mx-auto p-4 space-y-4">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">30‑Day Challenge</h1>
+          <div className="flex">
           <p className="text-sm text-muted-foreground">
-            Started {format(new Date(state.startDateISO + "T00:00:00"), "MMM d")} · Goal:{" "}
+            Started {format(new Date(state.startDateISO + "T00:00:00"), "MMM d")} · Goal:{" "}</p>
             <Badge variant="secondary" className="align-middle">
               {intake.goal}
             </Badge>{" "}
-            · Habit: <Badge className="align-middle">{intake.keystoneHabit}</Badge>
-          </p>
+            <p className="text-sm text-muted-foreground">
+            · Habit: </p><Badge className="align-middle">{intake.keystoneHabit}</Badge></div>
+          
         </div>
         <Badge variant="outline">Day {todayDay}/30</Badge>
       </header>
@@ -197,9 +212,7 @@ export default function DashboardPage() {
 
       <Separator />
 
-      {todayDay % 7 === 0 ? (
-        <WeeklyRetroCard weekIndex={Math.ceil(todayDay / 7)} onOpen={() => alert("Open weekly retro (stub)")} />
-      ) : null}
+      
 
       <TinyHabitPrompt
         open={promptOpen}
@@ -215,7 +228,14 @@ export default function DashboardPage() {
         onReachedEighty={handleReachedEighty}
         onFinished={handleFinished}
       />
-      <WeeklyRetroCard weekIndex={Math.ceil(todayDay / 7)} onOpen={() => alert("Open weekly retro (stub)")} />
+      <WeeklyRetroModal
+        open={retroOpen}
+        onOpenChange={setRetroOpen}
+        weekIndex={Math.ceil(derived.todayDay / 7)}
+        targetMinutesPerDay={targetMinutes}
+      />
+      <MinutesSparklineCard data={last7} />
+      <MiniTimerWidget onOpenTimer={() => setTimerOpen(true)} />
     </div>
   );
 }
