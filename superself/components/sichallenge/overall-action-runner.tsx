@@ -14,6 +14,12 @@ type Props = {
   onComplete: (payload: any) => void; // store in DayProgress.notes/proofs/sessions
   defaultMinutes?: number; // fallback for timer
 };
+async function playSound(src: string) {
+  try {
+    const audio = new Audio(src);
+    await audio.play();
+  } catch {}
+}
 
 export function OverallActionRunner({ day, config, onComplete, defaultMinutes = 25 }: Props) {
   const [openTimer, setOpenTimer] = useState(false);
@@ -39,7 +45,7 @@ export function OverallActionRunner({ day, config, onComplete, defaultMinutes = 
           <div className="space-y-2">
             {config.checklistItems?.map((label, i) => (
               <div key={i} className="flex items-center gap-2">
-                <Checkbox id={`c-${i}`} onCheckedChange={(v) => v && setDone(true)} />
+                <Checkbox id={`c-${i}`} onCheckedChange={(v) => {v && setDone(true); playSound("/sounds/check.mp3");}} />
                 <label htmlFor={`c-${i}`} className="text-sm">{label}</label>
               </div>
             ))}

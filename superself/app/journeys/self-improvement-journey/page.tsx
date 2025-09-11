@@ -15,15 +15,20 @@ import { MinutesSparklineCard } from "@/components/sichallenge/minutes-sparkline
 import { MiniTimerWidget } from "@/components/sichallenge/mini-timer-widget";
 import { saveCompletedSession } from "@/lib/sessions";
 import { loadTimer, getProgress } from "@/lib/timer";
+import { DayPreviewSheet } from "@/components/sichallenge/newUI/day-preview-sheet";
+import { WEEK_BRIEFS_OVERALL } from "@/lib/brief";
+import { getBriefForDay as getFocusBrief } from "@/lib/brief"; 
 
 import { loadIntake, loadState, saveState } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
 import { getBriefForDay } from "@/lib/brief";
 import { completeTinyHabit, setTinyHabit } from "@/lib/local";
 
-import type { ChallengeState, Intake } from "@/lib/types";
+import type { ChallengeState, Intake, MicroBrief } from "@/lib/types";
 import { TimerModal } from "@/components/sichallenge/timer-modal";
 import { OverallDailyChallenge } from "@/components/sichallenge/overall-daily-challenge";
+import { StreakHero } from "@/components/sichallenge/newUI/streak-hero";
+import { DayScroller } from "@/components/sichallenge/newUI/day-scroller";
 
 export default function DashboardPage() {
   const [intake, setIntake] = useState<Intake | null>(null);
@@ -33,6 +38,9 @@ export default function DashboardPage() {
   const [canComplete, setCanComplete] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [retroOpen, setRetroOpen] = useState(false);
+  const isOverall = intake?.goal === "overall improvement";
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewBrief, setPreviewBrief] = useState<MicroBrief | null>(null);
 
   useEffect(() => {
     const i = loadIntake<Intake>();
@@ -190,6 +198,31 @@ export default function DashboardPage() {
 
   // Micro brief only for days 1..7
   const brief = todayDay <= 7 ? getBriefForDay(todayDay, intake.goal) : null;
+  const last7Arr = getLast7Array(state, derived.todayDay).map((x) => x.minutes);
+  function loadBriefFor(day: number): MicroBrief | null {
+  if (isOverall) {
+    return WEEK_BRIEFS_OVERALL.find((b) => b.day === day) ?? null;
+  }
+  // fallback for other tracks (if you have week1 briefs)
+  return getFocusBrief?.(day, "focus") ?? null;
+}
+
+function handlePickDay(day: number) {
+  const b = loadBriefFor(day);
+  setPreviewBrief(b);
+  setPreviewOpen(true);
+}
+
+// Optional: jumping to a different day (be careful; this changes today flow)
+function jumpToDay(day: number) {
+  // For MVP, you might just close and scroll; or if you want to actually switch:
+  // 1) Update state.todayDay (danger: affects streak logic)
+  // 2) Or store a transient "viewingDay" separate from "todayDay"
+  // Here, we’ll simply close and scroll to the brief section of today.
+  setPreviewOpen(false);
+  // If you want to truly switch "today" for preview purposes only:
+  // setViewingDay(day);
+}
 
   
 
@@ -211,7 +244,23 @@ export default function DashboardPage() {
         <Badge variant="outline">Day {todayDay}/30</Badge>
       </header>
 
-      <ProgressTiles day={todayDay} streak={streak} adherencePct={adh} />
+      { /*<ProgressTiles day={todayDay} streak={streak} adherencePct={adh} />*/}
+      <StreakHero
+        name={"Max Mustermann"}
+        day={derived.todayDay}
+        streak={streak}
+        adherencePct={adh}
+        last7={last7Arr}
+        isOverall={isOverall}
+      />
+      <DayScroller
+        currentDay={derived.todayDay}
+        onPick={(day) => {handlePickDay
+          // optional: preview another day's brief
+          // for MVP, you can just ignore or show a toast
+        }}
+      />
+      
 
       {brief && intake.goal === "focus" ? (
         <MicroBriefCard
@@ -279,4 +328,8 @@ export default function DashboardPage() {
       ) : null}
     </div>
   );
+}
+function scrollToSection(id: string) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
