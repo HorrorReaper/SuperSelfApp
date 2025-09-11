@@ -13,6 +13,8 @@ import { TinyHabitCard } from "@/components/sichallenge/tiny-habit-card";
 import { getLast7Array } from "@/lib/sparkline";
 import { MinutesSparklineCard } from "@/components/sichallenge/minutes-sparkline-card";
 import { MiniTimerWidget } from "@/components/sichallenge/mini-timer-widget";
+import { saveCompletedSession } from "@/lib/sessions";
+import { loadTimer, getProgress } from "@/lib/timer";
 
 import { loadIntake, loadState, saveState } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
@@ -21,11 +23,13 @@ import { completeTinyHabit, setTinyHabit } from "@/lib/local";
 
 import type { ChallengeState, Intake } from "@/lib/types";
 import { TimerModal } from "@/components/sichallenge/timer-modal";
+import { OverallDailyChallenge } from "@/components/sichallenge/overall-daily-challenge";
 
 export default function DashboardPage() {
   const [intake, setIntake] = useState<Intake | null>(null);
   const [state, setState] = useState<ChallengeState | null>(null);
   const [timerOpen, setTimerOpen] = useState(false);
+  const [sessionSaved, setSessionSaved] = useState(false);
   const [canComplete, setCanComplete] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [retroOpen, setRetroOpen] = useState(false);
@@ -112,17 +116,28 @@ export default function DashboardPage() {
   };
 
   function markDone() {
-    const next = { ...state };
+  const next: ChallengeState = { ...(state as ChallengeState) };
     const rec = ensureDay(next.days, todayDay);
     rec.completed = true;
-    rec.habitMinutes = Math.max(rec.habitMinutes ?? 0, targetMinutes);
+    // Ensure habitMinutes mirrors actual sum
+    const total = (rec.sessions ?? []).reduce((a, s) => a + (s.minutes || 0), 0);
+    rec.habitMinutes = total; // don’t cap at target
     next.streak = computeStreak(next.days);
     setState(next);
     saveState(next);
   }
+  function handleActionButton() {
+    if (intake.goal === "focus") {
+      handleStartTimer();
+    } else {
+      alert("Action button stub for non-focus goal");
+      // TODO: Implement non-focus action
+    }
+  }
 
   function handleStartTimer() {
-    setTimerOpen(true);
+  setSessionSaved(false);
+  setTimerOpen(true);
   }
 
   function handleReachedEighty() {
@@ -131,6 +146,24 @@ export default function DashboardPage() {
 
   function handleFinished() {
     setCanComplete(true);
+    // Save the session with actual elapsed minutes
+    const { elapsed } = getProgress();
+    const minutes = Math.max(1, Math.round(elapsed / 60));
+    saveCompletedSession(derived?.todayDay ?? state!.todayDay, minutes);
+    setSessionSaved(true);
+  }
+
+  function handleTimerOpenChange(open: boolean) {
+    setTimerOpen(open);
+    // On close, persist a partial session if at least 1 minute elapsed and not saved yet
+    if (!open) {
+      const { elapsed } = getProgress();
+      const minutes = Math.floor(elapsed / 60);
+      if (minutes >= 1 && !sessionSaved) {
+        saveCompletedSession(derived?.todayDay ?? state!.todayDay, minutes);
+        setSessionSaved(true);
+      }
+    }
   }
 
   function handleTinySelect(type: "timeboxing" | "lights_down" | "mobility") {
@@ -156,7 +189,7 @@ export default function DashboardPage() {
   }
 
   // Micro brief only for days 1..7
-  const brief = todayDay <= 7 ? getBriefForDay(todayDay) : null;
+  const brief = todayDay <= 7 ? getBriefForDay(todayDay, intake.goal) : null;
 
   
 
@@ -171,26 +204,31 @@ export default function DashboardPage() {
             <Badge variant="secondary" className="align-middle">
               {intake.goal}
             </Badge>{" "}
-            <p className="text-sm text-muted-foreground">
-            · Habit: </p><Badge className="align-middle">{intake.keystoneHabit}</Badge></div>
-          
+            {intake.goal === "overall improvement" ? null :(<div><p className="text-sm text-muted-foreground">
+            · Habit: </p><Badge className="align-middle">{intake.keystoneHabit}</Badge></div>)}
+          </div>
         </div>
         <Badge variant="outline">Day {todayDay}/30</Badge>
       </header>
 
       <ProgressTiles day={todayDay} streak={streak} adherencePct={adh} />
 
-      {brief ? (
+      {brief && intake.goal === "focus" ? (
         <MicroBriefCard
           title={brief.title}
           tldr={brief.tldr}
           content={brief.content}
           actionLabel={brief.actionLabel}
-          onAction={handleStartTimer}
+          onAction={handleActionButton}
           onSkip={handleStartTimer}
         />
       ) : null}
-
+      {intake.goal === "overall improvement" ? (
+        <OverallDailyChallenge
+    day={derived.todayDay}
+    brief={brief}
+    onMarkedDone={markDone}
+  />):(
       <ChallengeTodayCard
         title={titleMap[intake.keystoneHabit]}
         description={descMap[intake.keystoneHabit]}
@@ -199,7 +237,7 @@ export default function DashboardPage() {
         onStart={handleStartTimer}
         onComplete={markDone}
         canComplete={canComplete || !!dayRec.completed}
-      />
+      />)}
 
       {tiny ? (
         <TinyHabitCard
@@ -221,21 +259,24 @@ export default function DashboardPage() {
         onSkip={handleTinySkip}
       />
 
-      <TimerModal
+      {intake.goal==="focus" ? (<TimerModal
         open={timerOpen}
-        onOpenChange={setTimerOpen}
+        onOpenChange={handleTimerOpenChange}
         defaultMinutes={targetMinutes}
         onReachedEighty={handleReachedEighty}
         onFinished={handleFinished}
-      />
+      />) : null}
       <WeeklyRetroModal
         open={retroOpen}
         onOpenChange={setRetroOpen}
         weekIndex={Math.ceil(derived.todayDay / 7)}
         targetMinutesPerDay={targetMinutes}
       />
-      <MinutesSparklineCard data={last7} />
-      <MiniTimerWidget onOpenTimer={() => setTimerOpen(true)} />
+      
+      {intake.goal === "focus" ? (<>
+        <MinutesSparklineCard data={last7} />
+        <MiniTimerWidget onOpenTimer={() => setTimerOpen(true)} /></>
+      ) : null}
     </div>
   );
 }

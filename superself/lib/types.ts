@@ -4,7 +4,8 @@ export type PrimaryGoal =
   | "movement"
   | "learning"
   | "stress"
-  | "nutrition";
+  | "nutrition"
+  | "overall improvement";
 
 export type KeystoneHabit =
   | "focus_block"
@@ -49,7 +50,9 @@ export type MicroBrief = {
   title: string;
   tldr: string; // 1-sentence summary
   content: string; // short tips 60–120s text
+  controlquestion?: string; // prompt to reflect on
   actionLabel: string; // button label for the action
+  action?: DailyActionConfig; // optional action to do today
 };
 
 export type ChallengeState = {
@@ -60,6 +63,26 @@ export type ChallengeState = {
   days: DayProgress[];
   tinyHabit?: TinyHabitConfig | null;                // NEW
   tinyHabitCompletions?: TinyHabitCompletion[];      // NEW
+};
+export type ActionKind =
+  | "timer"          // needs minutes target + proof via timer
+  | "checklist"      // list of items to tick (e.g., identity + 3 behaviors)
+  | "text"           // free text answer (e.g., control question, identity rewrite)
+  | "schedule"       // generate ICS / open Google Calendar prefill
+  | "toggle"         // simple “done” checkbox
+  | "photo";         // optional photo proof
+
+  export type DailyActionConfig = {
+  kind: ActionKind;
+  targetMinutes?: number;               // for timer
+  checklistItems?: string[];            // for checklist
+  requireAnswer?: boolean;              // for text days
+  scheduleTemplate?: {                  // for schedule
+    title: string;
+    durationMinutes: number;
+    when: "today" | "tomorrow" | "custom";
+  };
+  allowPhotoProof?: boolean;            // for identity/environment days
 };
 
 export type DayProgress = {

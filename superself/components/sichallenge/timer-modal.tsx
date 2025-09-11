@@ -166,6 +166,8 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
     setState(loadTimer());
   }
 
+
+
   const mmRemaining = formatMMSS(remaining);
   const mmElapsed = formatMMSS(elapsed);
 
@@ -211,9 +213,6 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
               <Slider value={[minutes]} min={5} max={60} step={5} onValueChange={handleMinutesChange} disabled={running} />
               <div className="flex items-center justify-between mt-2">
                 <div className="text-xs text-muted-foreground">Adjust in 5-min steps</div>
-                <Button size="sm" variant="secondary" onClick={handleApplyMinutes} disabled={running}>
-                  Apply
-                </Button>
               </div>
             </div>
           </div>

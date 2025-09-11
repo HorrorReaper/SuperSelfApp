@@ -33,6 +33,7 @@ const PRIMARY_GOALS: { key: PrimaryGoal; title: string; desc: string }[] = [
   { key: "nutrition", title: "Healthy eating basics", desc: "Simple, sustainable nutrition" },
   { key: "stress", title: "Stress reduction", desc: "Lower stress with micro-practices" },
   { key: "learning", title: "Learning habit", desc: "Show up for your curiosity" },
+  { key: "overall improvement", title: "Overall self-improvement", desc: "A mix of all areas" },
 ];
 
 function getHabitOptions(goalKey: string): string[] {
@@ -125,6 +126,7 @@ export default function Step1Page() {
     if (primaryGoal === "movement") return "Baseline minutes of movement";
     if (primaryGoal === "nutrition") return "Baseline healthy meals per day";
     if (primaryGoal === "stress") return "Baseline minutes of stress relief";
+    if (primaryGoal === "overall improvement") return "Nights per week you keep a consistent sleep window";
     return "Baseline (units vary)";
   }, [keystoneHabit, primaryGoal]);
 
@@ -154,7 +156,7 @@ export default function Step1Page() {
       setError("Please select a primary goal.");
       return;
     }
-    if (!keystoneHabit) {
+    if (!keystoneHabit && primaryGoal !== "overall improvement") {
       setError("Please choose one keystone habit.");
       return;
     }
@@ -164,7 +166,7 @@ export default function Step1Page() {
     }
 
     const habitKey = mapHabitToKey(keystoneHabit);
-    if (!habitKey) {
+    if (!habitKey && primaryGoal !== "overall improvement") {
       setError("Please choose a supported keystone habit (or rename it to match a known type).");
       return;
     }
@@ -242,6 +244,9 @@ export default function Step1Page() {
         </section>
 
         {/* Keystone habit */}
+        {primaryGoal === "overall improvement" ? (
+          null
+        ):(
         <section className="mb-8">
           <h2 className="text-xl font-bold text-blue-700 mb-2">One keystone habit to practice daily</h2>
           <p className="text-sm text-gray-600 mb-3">Keeps the challenge anchored to a single, verifiable action.</p>
@@ -259,7 +264,7 @@ export default function Step1Page() {
               onChange={(e) => setKeystoneHabit(e.target.value)}
             />
           </div>
-        </section>
+        </section>)}
 
         {/* Preferred time window */}
         <section className="mb-8">
@@ -273,7 +278,9 @@ export default function Step1Page() {
         </section>
 
         {/* Baseline and constraints */}
-        <section className="mb-8">
+        {primaryGoal === "overall improvement" ? (
+          null
+        ):(<section className="mb-8">
           <h2 className="text-xl font-bold text-blue-700 mb-2">Current baseline and constraints</h2>
           <p className="text-sm text-gray-600 mb-3">Sets realistic targets and calibrates difficulty.</p>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -301,7 +308,7 @@ export default function Step1Page() {
               </div>
             </div>
           </div>
-        </section>
+        </section>)}
 
         {/* Energy pattern */}
         <section className="mb-8">
