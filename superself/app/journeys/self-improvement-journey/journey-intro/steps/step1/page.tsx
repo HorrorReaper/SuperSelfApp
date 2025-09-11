@@ -3,6 +3,8 @@ import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { saveIntake } from "@/lib/local";
 import type { Intake, KeystoneHabit, PrimaryGoal } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 type ChipProps = {
   label: string;
@@ -150,7 +152,7 @@ export default function Step1Page() {
     return null;
   }
 
-  function handleSave() {
+   const handleSave = async() => {
     setError("");
     if (!primaryGoal) {
       setError("Please select a primary goal.");
@@ -208,6 +210,19 @@ export default function Step1Page() {
     try {
       saveIntake(intake);
       console.log("Saved Intake for challenge:", intake);
+      const user = await getCurrentUser();
+      if (!user) {
+        setError("You must be logged in to save your journey.");
+        return;
+      }
+      const {data, error} = await supabase.from("user_journey").upsert({
+        user_id: user.id,
+        journey: "30 Day Self Improvement Challenge",
+      });
+      if (error) {
+        setError(error.message);
+        return;
+      }
       window.location.href = "/journeys/self-improvement-journey";
     } catch (e) {
       setError("Couldn't save locally. Please try again.");

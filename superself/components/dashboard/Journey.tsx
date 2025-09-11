@@ -23,7 +23,7 @@ export default function Journey({ title, description, continueHref, exploreHref 
         .from("user_journey")
         .select("id")
         .eq("user_id", user.id)
-        .eq("journey",title.toLowerCase());
+        .eq("journey",title);
       if (data && data.length > 0) {
         setHasData(true);
       }
