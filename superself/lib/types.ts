@@ -98,3 +98,13 @@ export type DayProgress = {
   sessions?: { id: string; minutes: number; startedAt: string; endedAt?: string }[];
 };
 
+// lib/types.ts (add or confirm)
+export type MoodLevel = "super" | "good" | "normal" | "not_really" | "terrible";
+
+export type DayCheckin = {
+  day: number;
+  mood: MoodLevel;
+  note?: string;
+  createdAtISO: string;
+};
+
