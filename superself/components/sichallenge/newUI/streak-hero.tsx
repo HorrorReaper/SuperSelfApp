@@ -3,7 +3,6 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Sparkline } from "@/components/sichallenge/sparkline"; // your SVG sparkline
-import { plural } from "@/lib/ui";
 import { Progress } from "@/components/ui/progress";
 
 type Props = {
@@ -15,7 +14,8 @@ type Props = {
   isOverall?: boolean;           // if true, show generic welcome text
 };
 
-export function StreakHero({ name, day, streak, adherencePct, last7, isOverall }: Props) {
+export function StreakHero({ name, day, streak, adherencePct, last7, isOverall}: Props) {
+  
   return (
     <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl"
          style={{
@@ -29,7 +29,6 @@ export function StreakHero({ name, day, streak, adherencePct, last7, isOverall }
       {/* subtle pattern overlay */}
       <div className="pointer-events-none absolute inset-0 opacity-20 mix-blend-soft-light"
           style={{ backgroundImage: "radial-gradient(circle at 20% 10%, white 0%, transparent 40%)" }} />
-      
       <div className="relative z-10">
         <div className="flex items-center justify-between">
           <div className="space-y-1">

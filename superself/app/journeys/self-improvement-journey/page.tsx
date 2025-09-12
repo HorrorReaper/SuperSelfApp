@@ -37,6 +37,7 @@ import type { MoodLevel } from "@/lib/types";
 import { getBriefForDay } from "@/lib/brief";
 import { awardForDayCompletion } from "@/lib/gamification";
 import { toast } from "sonner";
+import { xpProgress } from "@/lib/gamification";
 
 export default function DashboardPage() {
   const [intake, setIntake] = useState<Intake | null>(null);
@@ -57,6 +58,7 @@ export default function DashboardPage() {
   const goalKey = String(intake?.goal ?? "");
   const isOverall = goalKey === "overall_improvement" || goalKey === "overall improvement";
   const totalDays = 30;
+  
   const [selectedDay, setSelectedDay] = useState(1);
   useEffect(() => {
     const i = loadIntake<Intake>();
@@ -111,6 +113,8 @@ export default function DashboardPage() {
     );
   }
 
+  const xp = state.xp ?? 0;
+  const xpProg = xpProgress(xp); // { level, inLevel, needed, pct }
   const { todayDay, dayRec, streak, adh } = derived;
 
   // Sparkline source data for minutes (no hooks here to avoid hook order issues)
