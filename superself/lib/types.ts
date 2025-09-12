@@ -96,6 +96,7 @@ export type DayProgress = {
   dateISO: string;
   // Optional: support multiple sessions later
   sessions?: { id: string; minutes: number; startedAt: string; endedAt?: string }[];
+  actionData?: DayActionData; // NEW
 };
 
 // lib/types.ts (add or confirm)
@@ -107,4 +108,14 @@ export type DayCheckin = {
   note?: string;
   createdAtISO: string;
 };
+// lib/types.ts
+export type DayActionData = {
+  kind?: "timer" | "checklist" | "text" | "schedule" | "toggle" | "photo";
+  checklist?: { label: string; done: boolean }[];
+  text?: string;
+  scheduled?: boolean;
+  toggleDone?: boolean;
+  photoProof?: string; // data URL or remote URL
+};
+
 
