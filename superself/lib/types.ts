@@ -63,6 +63,10 @@ export type ChallengeState = {
   days: DayProgress[];
   tinyHabit?: TinyHabitConfig | null;                // NEW
   tinyHabitCompletions?: TinyHabitCompletion[];      // NEW
+  xp?: number;               // total XP
+  level?: number;            // current level (>= 1)
+  xpLog?: XpEvent[];         // recent XP events
+  lastLevelUpISO?: string;   // when user last leveled up
 };
 export type ActionKind =
   | "timer"          // needs minutes target + proof via timer
@@ -117,5 +121,16 @@ export type DayActionData = {
   toggleDone?: boolean;
   photoProof?: string; // data URL or remote URL
 };
+// lib/types.ts
+export type XpEvent = {
+  id: string;
+  day?: number;              // which challenge day this ties to
+  amount: number;            // +xp
+  reason: "day_complete" | "weekly_retro" | "mood_checkin" | "tiny_habit" | string;
+  createdAtISO: string;
+};
+
+
+
 
 

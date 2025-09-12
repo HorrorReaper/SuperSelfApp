@@ -35,6 +35,8 @@ import type { MoodLevel } from "@/lib/types";
 
 // Briefs
 import { getBriefForDay } from "@/lib/brief";
+import { awardForDayCompletion } from "@/lib/gamification";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const [intake, setIntake] = useState<Intake | null>(null);
@@ -161,6 +163,13 @@ export default function DashboardPage() {
     next.streak = computeStreak(next.days);
     setState(next);
     saveState(next);
+    const { gained, levelUp, newLevel } = awardForDayCompletion(todayDay);
+    if (gained > 0) {
+      toast.success(`+${gained} XP`, { description: `Day ${todayDay} completed` });
+    }
+    if (levelUp) {
+      toast(`Level up!`, { description: `You reached level ${newLevel} 🚀` });
+    }
   }
 
   function handleStartTimer() {

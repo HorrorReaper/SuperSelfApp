@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { MoodLevel } from "@/lib/types";
 import { cn } from "@/lib/utils"; // optional classnames helper, or swap cn(...) with template strings
+import { awardForMoodCheckin } from "@/lib/gamification";
+import { toast } from "sonner";
 
 type Props = {
   open: boolean;
@@ -44,6 +46,14 @@ export function MoodCheckinModal({ open, onOpenChange, onSubmit, defaultMood = n
   function handleSubmitMoodOnly() {
     if (!mood) return;
     onSubmit(mood, undefined);
+    const { gained, levelUp, newLevel } = awardForMoodCheckin(1);
+    if (gained > 0) {
+      toast.success(`+${gained} XP`, { description: `Mood check-in recorded` });
+    }
+    if (levelUp) {
+      toast(`Level up!`, { description: `You reached level ${newLevel} 🚀`, richColors: true });
+
+    }
     onOpenChange(false);
   }
 

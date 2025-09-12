@@ -10,6 +10,9 @@ export function initChallengeState(startDate?: Date): ChallengeState {
     streak: 0,
     graceUsedThisWeek: 0,
     days: [],
+    xp: 0,
+    level: 1,
+    xpLog: [],
   };
 }
 
