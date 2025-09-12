@@ -54,7 +54,8 @@ export default function DashboardPage() {
   // Normalize overall key; prefer a machine key without spaces
   const goalKey = String(intake?.goal ?? "");
   const isOverall = goalKey === "overall_improvement" || goalKey === "overall improvement";
-
+  const totalDays = 30;
+  const [selectedDay, setSelectedDay] = useState(1);
   useEffect(() => {
     const i = loadIntake<Intake>();
     setIntake(i);
@@ -67,6 +68,7 @@ export default function DashboardPage() {
     s.todayDay = todayDay;
     saveState(s);
     setState(s);
+    setSelectedDay(todayDay);
 
     if (todayDay === 8 && (!s.tinyHabit || !s.tinyHabit.active)) {
       setPromptOpen(true);
@@ -93,6 +95,10 @@ export default function DashboardPage() {
     const adh = adherence(state.days, todayDay);
     return { todayDay, dayRec, streak, adh };
   }, [state]);
+  const completedDays = useMemo(
+     () => state?.days?.filter((d) => d.completed).map((d) => d.day) ?? [],
+     [state?.days]
+   );
 
   if (!intake || !state || !derived) {
     return (
@@ -259,7 +265,20 @@ export default function DashboardPage() {
         isOverall={isOverall}
       />
 
-      <DayScroller currentDay={todayDay} onPick={(d) => handlePickDay(d)} />
+      {/*<DayScroller currentDay={todayDay} onPick={(d) => handlePickDay(d)} />*/}
+<DayScroller
+        totalDays={totalDays}
+        todayDay={todayDay}
+        selectedDay={selectedDay}
+        completedDays={completedDays}
+        onPick={(day) => {
+          setSelectedDay(day);
+          // NEW (optional UX): open preview when a day is picked
+          const b = getBriefForDay(day, isOverall ? "overall improvement" : "focus");
+          setPreviewBrief(b);
+          setPreviewOpen(true);
+        }}
+      />
 
       <DayPreviewSheet
         open={previewOpen}
@@ -276,7 +295,8 @@ export default function DashboardPage() {
             day={todayDay}
             brief={activeBrief}
             canComplete={canComplete}
-            onMarkedDone={markDone}
+            //onMarkedDone={markDone}
+            onMarkedDone={() => setCanComplete(true)}
           />)
       ) : (
         activeBrief && (

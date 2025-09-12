@@ -1,40 +1,203 @@
-// components/day-scroller.tsx
 "use client";
 
-type DayChip = { day: number; label: string; weekday: string; isToday: boolean };
+import * as React from "react";
+import { cn } from "@/lib/utils"; // or inline a tiny cn helper
+import { Button } from "@/components/ui/button";
+import { Check, ChevronLeft, ChevronRight, Minus } from "lucide-react";
 
 type Props = {
-  currentDay: number;                 // 1..30
-  onPick?: (day: number) => void;     // optional action when user taps a day
+  totalDays?: number;           // default 30
+  todayDay: number;             // e.g., 12
+  selectedDay: number;          // currently focused/selected day
+  completedDays?: number[];     // list of completed day numbers
+  onPick: (day: number) => void;
 };
 
-export function DayScroller({ currentDay, onPick }: Props) {
-  const days: DayChip[] = Array.from({ length: 7 }).map((_, i) => {
-    const day = Math.max(1, currentDay - 3) + i;
-    const d = new Date();
-    d.setDate(d.getDate() - (currentDay - day));
-    const weekday = d.toLocaleDateString(undefined, { weekday: "short" });
-    const label = d.getDate().toString();
-    return { day, label, weekday, isToday: day === currentDay };
-  });
+type DayState = "selected" | "today" | "completed" | "missed" | "future";
+
+export function DayScroller({
+  totalDays = 30,
+  todayDay,
+  selectedDay,
+  completedDays = [],
+  onPick,
+}: Props) {
+  const scrollerRef = React.useRef<HTMLDivElement>(null);
+  const btnRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
+
+  const [canLeft, setCanLeft] = React.useState(false);
+  const [canRight, setCanRight] = React.useState(false);
+
+  const completedSet = React.useMemo(() => new Set(completedDays), [completedDays]);
+
+  function getState(day: number): DayState {
+    if (day === selectedDay) return "selected";
+    if (day === todayDay) return "today";
+    if (completedSet.has(day)) return "completed";
+    if (day < todayDay) return "missed";
+    return "future";
+  }
+
+  function updateShadows() {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 8);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  }
+
+  React.useEffect(() => {
+    updateShadows();
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onScroll = () => updateShadows();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(updateShadows);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, []);
+
+  // Ensure the selected day is visible when it changes
+  React.useEffect(() => {
+    const idx = selectedDay - 1;
+    const btn = btnRefs.current[idx];
+    btn?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [selectedDay]);
+
+  function scrollByDir(dir: "left" | "right") {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const amount = Math.max(240, Math.round(el.clientWidth * 0.8));
+    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      const delta = e.key === "ArrowRight" ? 1 : -1;
+      const next = Math.min(Math.max(1, selectedDay + delta), totalDays);
+      onPick(next);
+      btnRefs.current[next - 1]?.focus();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      onPick(1);
+      btnRefs.current[0]?.focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      onPick(totalDays);
+      btnRefs.current[totalDays - 1]?.focus();
+    }
+  }
 
   return (
-    <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-      {days.map((d) => (
-        <button
-          key={d.day}
-          onClick={() => onPick?.(d.day)}
-          className={[
-            "min-w-[56px] rounded-2xl px-3 py-2 text-center transition",
-            d.isToday
-              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-              : "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200",
-          ].join(" ")}
+    <div className="relative">
+      {/* Arrows */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-between">
+        <Button
+          size="icon"
+          variant="ghost"
+          className={cn(
+            "pointer-events-auto shadow-sm",
+            "bg-background/70 backdrop-blur rounded-full",
+            !canLeft && "invisible"
+          )}
+          aria-label="Scroll days left"
+          onClick={() => scrollByDir("left")}
         >
-          <div className="text-xs">{d.label}</div>
-          <div className="text-[11px] opacity-70">{d.weekday}</div>
-        </button>
-      ))}
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className={cn(
+            "pointer-events-auto shadow-sm",
+            "bg-background/70 backdrop-blur rounded-full",
+            !canRight && "invisible"
+          )}
+          aria-label="Scroll days right"
+          onClick={() => scrollByDir("right")}
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Gradient edge shadows */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-y-0 left-0 w-10",
+          "bg-gradient-to-r from-background to-transparent",
+          canLeft ? "opacity-100" : "opacity-0",
+          "transition-opacity"
+        )}
+      />
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-y-0 right-0 w-10",
+          "bg-gradient-to-l from-background to-transparent",
+          canRight ? "opacity-100" : "opacity-0",
+          "transition-opacity"
+        )}
+      />
+
+      {/* Scroller */}
+      <nav
+        aria-label="Pick a day"
+        className="relative"
+        onKeyDown={handleKeyDown}
+      >
+        <div
+          ref={scrollerRef}
+          className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory px-1 py-2"
+        >
+          {Array.from({ length: totalDays }, (_, i) => {
+            const day = i + 1;
+            const state = getState(day);
+            const isSelected = state === "selected";
+            const isToday = state === "today";
+            const isCompleted = state === "completed";
+            const isMissed = state === "missed";
+
+            return (
+              <button
+                key={day}
+                ref={(el) => (btnRefs.current[i] = el)}
+                onClick={() => onPick(day)}
+                aria-current={isToday ? "date" : undefined}
+                className={cn(
+                  "snap-center shrink-0 h-12 w-12 rounded-full border transition",
+                  "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  isSelected
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : isToday
+                    ? "bg-foreground/90 text-background border-foreground/90"
+                    : isCompleted
+                    ? "bg-background border-primary/40 text-primary"
+                    : isMissed
+                    ? "bg-muted/70 border-muted-foreground/20 text-muted-foreground"
+                    : "bg-muted border-transparent hover:bg-muted/80"
+                )}
+                title={`Day ${day}`}
+              >
+                <span className="sr-only">Day</span>
+                <div className="relative flex h-full w-full items-center justify-center">
+                  <span className="text-sm font-medium">{day}</span>
+                  {/* Status glyph */}
+                  {isCompleted && (
+                    <Check className="absolute -right-1 -top-1 h-4 w-4 text-primary" aria-hidden />
+                  )}
+                  {isMissed && (
+                    <Minus className="absolute -right-1 -top-1 h-4 w-4 text-muted-foreground" aria-hidden />
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
