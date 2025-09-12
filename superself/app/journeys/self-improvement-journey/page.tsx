@@ -145,7 +145,9 @@ export default function DashboardPage() {
   };
 
   function markDone() {
-    const next: ChallengeState = { ...(state as ChallengeState) };
+    // Use latest persisted state to avoid clobbering autosaved actionData
+    const latest = loadState<ChallengeState>() ?? (state as ChallengeState);
+    const next: ChallengeState = { ...latest };
     const rec = ensureDay(next.days, todayDay);
     rec.completed = true;
     const total = (rec.sessions ?? []).reduce((a, s) => a + (s.minutes || 0), 0);
@@ -273,7 +275,8 @@ export default function DashboardPage() {
           <OverallDailyChallenge
             day={todayDay}
             brief={activeBrief}
-            onMarkedDone={() => setCanComplete(true)}
+            canComplete={canComplete}
+            onMarkedDone={markDone}
           />)
       ) : (
         activeBrief && (
