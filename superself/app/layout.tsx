@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ChallengeNavBarConnected } from "@/components/sichallenge/newUI/challenge-nav-bar-connected";
+import { UserButton } from "@/components/user/user-button";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +30,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ChallengeNavBarConnected title="SuperSelf" />
+        <ChallengeNavBarConnected title="SuperSelf" rightSlot={<UserButton />} />
         {children}
         <Toaster position="top-center" richColors closeButton />
       </body>
