@@ -293,12 +293,25 @@ export default function DashboardPage() {
         }}
       />
 
-      <DayPreviewSheet
+      {/*<DayPreviewSheet
         open={previewOpen}
         onOpenChange={setPreviewOpen}
         brief={previewBrief}
         canJump={false}
         onJumpToDay={jumpToDay}
+      />*/}
+      <DayPreviewSheet
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        brief={previewBrief}
+        todayDay={todayDay}                // NEW
+        canCompleteToday={canComplete}     // NEW: same gate you use on today's flow
+        onCompleted={() => {
+          // optional: refresh local state so completedDays, streak etc. update
+          const s = loadState<ChallengeState>();
+          if (s) setState(s);
+        }}
+        canJump={false}
       />
 
       {/* Brief + Action */}

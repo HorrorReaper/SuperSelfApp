@@ -23,14 +23,18 @@ export function computeTodayDay(startDateISO: string): number {
   return Math.min(30, Math.max(1, diff + 1));
 }
 
-export function computeStreak(days: DayProgress[]): number {
-  // Count backwards from latest day; stop on first miss
-  let streak = 0;
-  for (let i = days.length - 1; i >= 0; i--) {
-    if (days[i].completed) streak++;
-    else break;
+export function computeStreak(days: DayProgress[], upToDay?: number): number {
+  // Map by day for quick lookup
+  const map = new Map<number, DayProgress>(days.map(d => [d.day, d]));
+  const limit = upToDay ?? Math.max(0, ...days.map(d => d.day));
+  let count = 0;
+  for (let d = 1; d <= limit; d++) {
+    const rec = map.get(d);
+    if (!rec?.completed) break;
+    if (rec.creditedToStreak === false) break;
+    count++;
   }
-  return streak;
+  return count;
 }
 
 export function adherence(days: DayProgress[], uptoDay: number): number {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getDayCompleted, setDayCompleted } from "@/lib/progress";
 import { toast } from "sonner";
-import { awardForDayCompletion } from "@/lib/gamification";
+import { awardForDayCompletion, completeDayWithPolicy } from "@/lib/gamification";
 
 export function CompleteDayButton({
   day,
@@ -22,7 +22,8 @@ export function CompleteDayButton({
 
   function markCompleteOnce() {
     if (completed) return; // lock once completed
-    setDayCompleted(day, true);
+    completeDayWithPolicy(day);
+    //setDayCompleted(day, true);
     setCompleted(true);
     toast.success("Day completed", {
       description: `Nice! Day ${day} is in the books.`,

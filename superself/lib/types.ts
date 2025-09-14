@@ -61,12 +61,16 @@ export type ChallengeState = {
   streak: number;
   graceUsedThisWeek: number;
   days: DayProgress[];
-  tinyHabit?: TinyHabitConfig | null;                // NEW
-  tinyHabitCompletions?: TinyHabitCompletion[];      // NEW
-  xp?: number;               // total XP
-  level?: number;            // current level (>= 1)
-  xpLog?: XpEvent[];         // recent XP events
-  lastLevelUpISO?: string;   // when user last leveled up
+  tinyHabit?: TinyHabitConfig | null;
+  tinyHabitCompletions?: TinyHabitCompletion[];
+
+  // NEW: track current challenge week to reset grace
+  _graceWeekIndex?: number;
+  // XP system (added earlier if you followed gamification step)
+  xp?: number;
+  level?: number;
+  xpLog?: XpEvent[];
+  lastLevelUpISO?: string;
 };
 export type ActionKind =
   | "timer"          // needs minutes target + proof via timer
@@ -98,11 +102,14 @@ export type DayProgress = {
   energy?: number;
   notes?: string;
   dateISO: string;
-  // Optional: support multiple sessions later
   sessions?: { id: string; minutes: number; startedAt: string; endedAt?: string }[];
-  actionData?: DayActionData; // NEW
-};
+  actionData?: DayActionData;
 
+  // NEW:
+  completedAtISO?: string;     // when user actually completed
+  creditedToStreak?: boolean;  // whether this completion should count for streak
+  usedGrace?: boolean;         // if grace was consumed for this day
+};
 // lib/types.ts (add or confirm)
 export type MoodLevel = "super" | "good" | "normal" | "not_really" | "terrible";
 

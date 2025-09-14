@@ -2,6 +2,7 @@
 import { loadState, saveState } from "@/lib/local";
 import { adherence, computeStreak } from "@/lib/compute";
 import type { ChallengeState } from "@/lib/types";
+import { ensureDay } from "@/lib/compute";
 
 // Level curve: total XP needed to reach level L is 50 * L * (L + 1) / 2
 // This yields L1=50, L2 total=150, L3 total=300, ... Good for a 30-day arc.
@@ -118,4 +119,114 @@ export function awardForTinyHabit(day: number) {
     return { gained: 0, levelUp: false, newLevel: s.level ?? 1 };
   }
   return awardXpInternal(s, 10, "tiny_habit", day);
+}
+function resetGraceIfNeeded(s: ChallengeState, todayDay: number) {
+  const weekIndex = Math.ceil(todayDay / 7);
+  if (s._graceWeekIndex !== weekIndex) {
+    s._graceWeekIndex = weekIndex;
+    s.graceUsedThisWeek = 0;
+  }
+}
+export function completeDayWithPolicy(day: number) {
+  const s = loadState<ChallengeState>();
+  if (!s) return { ok: false };
+
+  resetGraceIfNeeded(s, s.todayDay);
+
+  const today = s.todayDay;
+  const daysLate = Math.max(0, today - day);
+
+  // Decide policy
+  let xpMult = 1;
+  let countsForStreak = true;
+  let usedGrace = false;
+  let reasonSuffix = "on_time";
+
+  if (daysLate === 0) {
+    // on time
+  } else if (daysLate === 1) {
+    if ((s.graceUsedThisWeek ?? 0) < 1) {
+      usedGrace = true;
+      s.graceUsedThisWeek = (s.graceUsedThisWeek ?? 0) + 1;
+      reasonSuffix = "grace";
+    } else {
+      xpMult = 0.7;
+      countsForStreak = false;
+      reasonSuffix = "late_1";
+    }
+  } else if (daysLate <= 7) {
+    xpMult = 0.5;
+    countsForStreak = false;
+    reasonSuffix = "late_7";
+  } else {
+    xpMult = 0.3;
+    countsForStreak = false;
+    reasonSuffix = "late_8plus";
+  }
+
+  // Mark completion on the right day
+  const rec = ensureDay(s.days, day);
+  if (!rec.completed) {
+    rec.completed = true;
+    rec.completedAtISO = new Date().toISOString();
+    rec.creditedToStreak = countsForStreak;
+    rec.usedGrace = usedGrace;
+  }
+
+  // Compute base XP and conditional streak bonus (only if countsForStreak)
+  const base = 50;
+  const streak = computeStreak(s.days, today);
+  const streakBonus = countsForStreak ? Math.min(30, Math.floor(streak / 7) * 10) : 0;
+  const total = Math.round((base + streakBonus) * xpMult);
+
+  const award = awardXpInternal(s, total, `day_complete_${reasonSuffix}`, day);
+  return {
+    ok: true,
+    policy: { xpMult, countsForStreak, usedGrace, reason: reasonSuffix, daysLate },
+    award,
+  };
+}
+function currentWeekIndex(day: number) {
+  return Math.ceil(day / 7);
+}
+
+export function previewMakeupPolicy(day: number) {
+  const s = loadState<ChallengeState>();
+  if (!s) return null;
+
+  const today = s.todayDay ?? 1;
+  const daysLate = Math.max(0, today - day);
+
+  // Determine grace availability for the current week in a non-mutating way
+  const weekIndex = currentWeekIndex(today);
+  const storedWeek = s._graceWeekIndex ?? weekIndex;
+  const graceUsedStored = s.graceUsedThisWeek ?? 0;
+  const graceUsedThisWeek = storedWeek === weekIndex ? graceUsedStored : 0;
+
+  let xpMult = 1;
+  let countsForStreak = true;
+  let reason: "on_time" | "grace" | "late_1" | "late_7" | "late_8plus" = "on_time";
+
+  if (daysLate === 0) {
+    // on time
+  } else if (daysLate === 1) {
+    if (graceUsedThisWeek < 1) {
+      reason = "grace";
+      // 100% XP, streak counts
+    } else {
+      xpMult = 0.7;
+      countsForStreak = false;
+      reason = "late_1";
+    }
+  } else if (daysLate <= 7) {
+    xpMult = 0.5;
+    countsForStreak = false;
+    reason = "late_7";
+  } else {
+    xpMult = 0.3;
+    countsForStreak = false;
+    reason = "late_8plus";
+  }
+
+  return { daysLate, xpMult, countsForStreak, reason };
 }
