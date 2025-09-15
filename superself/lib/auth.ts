@@ -1,10 +1,16 @@
 import { createSupabaseClient, supabase } from './supabase'
 
-export async function signUp(email: string, password: string) {
-  //const supabase = createSupabaseClient()
+export async function signUp(email: string, password: string, desiredUsername: string, displayName?: string, avatarUrl?: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
-    password
+    password,
+    options: {
+      data: {
+        username: desiredUsername,   // optional
+        name: displayName,           // optional
+        avatar_url: avatarUrl        // optional
+      }
+    }
   })
   return { data, error }
 } // Funktion um einen neuen Benutzer zu registrieren mit E-Mail und Passwort

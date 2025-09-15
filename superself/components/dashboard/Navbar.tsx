@@ -31,6 +31,7 @@ export function NavBar({
   const links = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/journeys/self-improvement-journey", label: "Journey" },
+    { href: "/friends", label: "Friends" }, // NEW
   ];
 
   const pct = Math.round(Math.min(1, Math.max(0, xpPct)) * 100);

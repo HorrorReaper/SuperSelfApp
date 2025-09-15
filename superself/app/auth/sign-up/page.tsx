@@ -20,10 +20,13 @@ export default function SignUpPage(){
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [username, setUsername] = useState("");
+    const [fullName, setFullName] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState("");
 
     const handleSubmit = async() => {
         // Handle sign up logic here
-        const { data, error } = await signUp(email, password);
+        const { data, error } = await signUp(email, password, username, fullName, avatarUrl);
         if (error) {
             setError(error.message);
         }else{
@@ -53,6 +56,35 @@ export default function SignUpPage(){
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="m@example.com"
                 required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="HorrorReaper"
+                
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="full-name">Full Name</Label>
+              <Input
+                id="full-name"
+                type="text"
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="John Doe"
+                
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="avatar">Avatar URL</Label>
+              <Input
+                id="avatar"
+                type="text"
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="https://example.com/avatar.jpg"
               />
             </div>
             <div className="grid gap-2">

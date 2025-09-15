@@ -11,6 +11,7 @@ export function loadIntake<T = any>(): T | null {
   return raw ? (JSON.parse(raw) as T) : null;
 }
 
+import { mirrorProfileFromState } from "./local-sync";
 import type { ChallengeState, TinyHabitCompletion, TinyHabitConfig } from "./types";
 
 export function loadState<T = ChallengeState>(): T | null {
@@ -28,6 +29,7 @@ export function saveState(state: ChallengeState) {
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
     // Notify same‑tab listeners (cross‑tab updates already trigger "storage")
+    mirrorProfileFromState(state);
     window.dispatchEvent(new CustomEvent(STATE_UPDATED_EVENT));
   } catch (err) {
     // Optional: log or handle quota errors

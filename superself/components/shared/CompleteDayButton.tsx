@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { getDayCompleted, setDayCompleted } from "@/lib/progress";
 import { toast } from "sonner";
 import { awardForDayCompletion, completeDayWithPolicy } from "@/lib/gamification";
+import { insertActivity } from "@/lib/social";
+import { supabase } from "@/lib/supabase";
 
 export function CompleteDayButton({
   day,
@@ -20,14 +22,19 @@ export function CompleteDayButton({
     setCompleted(getDayCompleted(day));
   }, [day]);
 
-  function markCompleteOnce() {
+  async function markCompleteOnce() {
     if (completed) return; // lock once completed
-    completeDayWithPolicy(day);
+    const res = completeDayWithPolicy(day);
+    if (!res?.ok) { /* ... */ return; }
+    const { award } = res;
     //setDayCompleted(day, true);
     setCompleted(true);
     toast.success("Day completed", {
       description: `Nice! Day ${day} is in the books.`,
     });
+    const actor_id = (await supabase.auth.getUser()).data.user!.id;
+    insertActivity({ actor_id: (await supabase.auth.getUser()).data.user!.id, type: "day_complete", day, xp: award.gained, message: null })
+    .catch(() => {});
     onChange?.(true);
   }
 
