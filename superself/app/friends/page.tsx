@@ -103,16 +103,29 @@ export default function FriendsPage() {
   }, [friendships, myId]);
   const [friends, setFriends] = useState<Profile[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      if (!acceptedFriendIds.length) {
-        setFriends([]);
-        return;
-      }
-      const { data } = await fetchProfilesByIds(acceptedFriendIds);
-      setFriends(data ?? []);
-    })();
-  }, [acceptedFriendIds.join(",")]); // ok for small lists
+  // NEW: collect unique user IDs involved in requests
+const requestUserIds = useMemo(() => {
+  const ids = new Set<string>();
+  pendingIncoming.forEach((f) => ids.add(f.requester_id));
+  pendingOutgoing.forEach((f) => ids.add(f.addressee_id));
+  return Array.from(ids);
+}, [pendingIncoming, pendingOutgoing]);
+
+// NEW: map of userId -> profile for request rows
+const [requestUserMap, setRequestUserMap] = useState<Record<string, Profile>>({});
+
+useEffect(() => {
+  (async () => {
+    if (!requestUserIds.length) {
+      setRequestUserMap({});
+      return;
+    }
+    const { data } = await fetchProfilesByIds(requestUserIds);
+    const map: Record<string, Profile> = {};
+    (data ?? []).forEach((p) => (map[p.id] = p));
+    setRequestUserMap(map);
+  })();
+}, [requestUserIds.join(",")]);
 
   return (
     <div className="max-w-screen-sm mx-auto p-4 space-y-4">
@@ -204,87 +217,124 @@ export default function FriendsPage() {
 
         {/* Requests */}
         <TabsContent value="requests">
-          <Card>
-            <CardHeader>
-              <CardTitle>Friend requests</CardTitle>
-              <CardDescription>Incoming and outgoing requests.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <div className="text-sm font-medium mb-2">Incoming</div>
-                {!pendingIncoming.length ? (
-                  <p className="text-sm text-muted-foreground">No incoming requests.</p>
-                ) : (
-                  pendingIncoming.map((f) => (
-                    <div key={f.id} className="flex items-center justify-between gap-3">
-                      <span className="text-sm">Request from {f.requester_id.slice(0, 8)}…</span>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={async () => {
-                            const { error } = await acceptRequest(f.id);
-                            if (error) toast.error(error.message);
-                            else {
-                              toast.success("Request accepted");
-                              refreshFriendships();
-                            }
-                          }}
-                        >
-                          Accept
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={async () => {
-                            const { error } = await cancelRequest(f.id);
-                            if (error) toast.error(error.message);
-                            else {
-                              toast("Request declined");
-                              refreshFriendships();
-                            }
-                          }}
-                        >
-                          Decline
-                        </Button>
+  <Card>
+    <CardHeader>
+      <CardTitle>Friend requests</CardTitle>
+      <CardDescription>Incoming and outgoing requests.</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-6">
+      {/* Incoming */}
+      <div>
+        <div className="text-sm font-medium mb-2">Incoming</div>
+        {!pendingIncoming.length ? (
+          <p className="text-sm text-muted-foreground">No incoming requests.</p>
+        ) : (
+          pendingIncoming.map((f) => {
+            const p = requestUserMap[f.requester_id];
+            const display = p?.name ?? p?.username ?? f.requester_id.slice(0, 8) + "…";
+            return (
+              <div key={f.id} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={p?.avatar_url ?? undefined} alt={display} />
+                    <AvatarFallback>{initials(display)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{display}</div>
+                    {p && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        Lv {p.level} · Streak {p.streak}
                       </div>
-                    </div>
-                  ))
-                )}
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      const { error } = await acceptRequest(f.id);
+                      if (error) toast.error(error.message);
+                      else {
+                        toast.success("Request accepted");
+                        await refreshFriendships();
+                      }
+                    }}
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={async () => {
+                      const { error } = await cancelRequest(f.id);
+                      if (error) toast.error(error.message);
+                      else {
+                        toast("Request declined");
+                        await refreshFriendships();
+                      }
+                    }}
+                  >
+                    Decline
+                  </Button>
+                </div>
               </div>
+            );
+          })
+        )}
+      </div>
 
-              <Separator />
+      <Separator />
 
-              <div>
-                <div className="text-sm font-medium mb-2">Outgoing</div>
-                {!pendingOutgoing.length ? (
-                  <p className="text-sm text-muted-foreground">No outgoing requests.</p>
-                ) : (
-                  pendingOutgoing.map((f) => (
-                    <div key={f.id} className="flex items-center justify-between gap-3">
-                      <span className="text-sm">To {f.addressee_id.slice(0, 8)}…</span>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={async () => {
-                            const { error } = await cancelRequest(f.id);
-                            if (error) toast.error(error.message);
-                            else {
-                              toast("Request canceled");
-                              refreshFriendships();
-                            }
-                          }}
-                        >
-                          Cancel
-                        </Button>
+      {/* Outgoing */}
+      <div>
+        <div className="text-sm font-medium mb-2">Outgoing</div>
+        {!pendingOutgoing.length ? (
+          <p className="text-sm text-muted-foreground">No outgoing requests.</p>
+        ) : (
+          pendingOutgoing.map((f) => {
+            const p = requestUserMap[f.addressee_id];
+            const display = p?.name ?? p?.username ?? f.addressee_id.slice(0, 8) + "…";
+            return (
+              <div key={f.id} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={p?.avatar_url ?? undefined} alt={display} />
+                    <AvatarFallback>{initials(display)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{display}</div>
+                    {p && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        Lv {p.level} · Streak {p.streak}
                       </div>
-                    </div>
-                  ))
-                )}
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={async () => {
+                      const { error } = await cancelRequest(f.id);
+                      if (error) toast.error(error.message);
+                      else {
+                        toast("Request canceled");
+                        await refreshFriendships();
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            );
+          })
+        )}
+      </div>
+    </CardContent>
+  </Card>
+</TabsContent>
+
 
         {/* Search */}
         <TabsContent value="search">
