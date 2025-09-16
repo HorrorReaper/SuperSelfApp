@@ -5,6 +5,6 @@ export async function awardXpServer(kind: "day_complete"|"weekly_retro"|"mood_ch
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return { error: authErr ?? new Error("Not signed in") };
 
-  const { error } = await supabase.from("xp_events").insert([{ user_id: user.id, kind, day, amount }]);
+  const { error } = await supabase.from("xp_events").upsert([{ user_id: user.id, kind, day, amount }], { onConflict: "user_id,kind,day", ignoreDuplicates: true });
   return { error };
 }

@@ -1,5 +1,4 @@
 // lib/weekly-retro.ts
-import { format } from "date-fns";
 import type { ChallengeState, DayProgress } from "./types";
 
 export type WeekMetrics = {
