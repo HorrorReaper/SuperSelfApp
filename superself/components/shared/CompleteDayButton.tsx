@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { awardForDayCompletion, completeDayWithPolicy } from "@/lib/gamification";
 import { insertActivity } from "@/lib/social";
 import { supabase } from "@/lib/supabase";
+import { awardXpServer } from "@/lib/xp-server";
+import { computeUnlocksFromState, unlockOnServer } from "@/lib/achievements/achievements";
+import { loadState } from "@/lib/local";
+import { ChallengeState } from "@/lib/types";
 
 export function CompleteDayButton({
   day,
@@ -17,15 +21,18 @@ export function CompleteDayButton({
   onChange?: (completed: boolean) => void;
 }) {
   const [completed, setCompleted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setCompleted(getDayCompleted(day));
   }, [day]);
 
-  async function markCompleteOnce() {
+  /*async function markCompleteOnce() {
     if (completed) return; // lock once completed
     const res = completeDayWithPolicy(day);
-    if (!res?.ok) { /* ... */ return; }
+
+    if (!res?.ok) { /* ...  return; }
+    res = await awardXpServer("day_complete", day, award.gained);
     const { award } = res;
     //setDayCompleted(day, true);
     setCompleted(true);
@@ -36,7 +43,71 @@ export function CompleteDayButton({
     insertActivity({ actor_id: (await supabase.auth.getUser()).data.user!.id, type: "day_complete", day, xp: award.gained, message: null })
     .catch(() => {});
     onChange?.(true);
+  }*/
+ 
+ async function markCompleteOnce() {
+  if (completed || submitting) return;         // avoid duplicates
+  setSubmitting(true);
+
+  try {
+    // 1) Apply local completion with policy (mutates local state + saves)
+    const result = completeDayWithPolicy(day);
+    if (!result?.ok) {
+      toast.error("Could not complete the day");
+      return;
+    }
+
+    const { award, policy } = result;          // award.gained, levelUp, newLevel etc.
+
+    // 2) Mirror XP to server (idempotent by kind+day)
+    if(!award){return;}
+    const server = await awardXpServer("day_complete", day, award.gained);
+    const keys = computeUnlocksFromState(loadState<ChallengeState>()!);
+    unlockOnServer(keys);
+    if (server.error) {
+      // Optional: ignore duplicate unique_violation or show soft warning for offline
+      // if (!/duplicate key|unique/i.test(server.error.message)) {
+      //   toast("Saved locally", { description: "Will sync XP when back online." });
+      // }
+      console.error("XP award failed:", server.error);
+    }
+
+    // 3) UI updates + toasts
+    const pct = Math.round((policy?.xpMult ?? 1) * 100);
+    const label =
+      policy?.reason === "on_time"
+        ? "On‑time completion"
+        : policy?.reason === "grace"
+        ? "Grace completion"
+        : "Make‑up completion";
+
+    toast.success(`+${award.gained} XP`, {
+      description: `${label} (${pct}% XP${policy?.countsForStreak ? ", streak counts" : ", no streak"})`,
+    });
+    if (award.levelUp) {
+      toast("Level up!", { description: `You reached level ${award.newLevel} 🚀` });
+    }
+
+    // 4) Activity feed (best-effort)
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (uid) {
+      await insertActivity({
+        actor_id: uid,
+        type: "day_complete",
+        day,
+        xp: award.gained,
+        message: null,
+      }).catch(() => {});
+    }
+
+    // 5) Update local UI state
+    setCompleted(true);
+    onChange?.(true);
+  } finally {
+    setSubmitting(false);
   }
+}
 
   const canClick = enabled && !completed; // cannot undo once completed
 

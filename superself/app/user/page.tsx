@@ -12,6 +12,13 @@ import { initChallengeState, computeStreak, adherence, ensureDay } from "@/lib/c
 import type { ChallengeState } from "@/lib/types";
 import { loadUserProfile, saveUserProfile, type UserProfile } from "@/lib/user";
 import { xpProgress } from "@/lib/gamification";
+import { Badge } from "@/components/ui/badge";
+import { fetchAchievementCatalog, fetchMyUnlocks, type Achievement } from "@/lib/achievements/achievements-client";
+
+function Icon({ name }: { name?: string | null }) {
+  // minimal Lucide dynamic import substitute; you can wire a proper icon map
+  return <span className="inline-block h-4 w-4 mr-1 align-[-1px]">🏅</span>;
+}
 
 export default function UserPage() {
   const [profile, setProfile] = useState<UserProfile>(() => loadUserProfile() ?? {});
@@ -85,7 +92,23 @@ export default function UserPage() {
     setState(next);
     toast("Challenge reset", { description: "A fresh 30‑day journey begins." });
   }
-
+  const [catalog, setCatalog] = useState<Achievement[]>([]);
+    const [unlocks, setUnlocks] = useState<Record<string, string>>({}); // key -> date
+  
+    useEffect(() => {
+      (async () => {
+        const { data: cat } = await fetchAchievementCatalog();
+        setCatalog(cat ?? []);
+        const { data: u } = await fetchMyUnlocks();
+        const map: Record<string, string> = {};
+        (u ?? []).forEach((x) => (map[x.key] = x.unlocked_at));
+        setUnlocks(map);
+      })();
+    }, []);
+  
+    const items = useMemo(() => {
+      return (catalog ?? []).map((a) => ({ ...a, unlocked_at: unlocks[a.key] }));
+    }, [catalog, unlocks]);
   return (
     <div className="max-w-screen-sm mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-semibold">Your Profile & Settings</h1>
@@ -178,6 +201,53 @@ export default function UserPage() {
             <div className="text-sm text-rose-600 font-medium">Danger zone</div>
             <Button variant="destructive" onClick={resetChallenge}>Reset 30‑day challenge</Button>
           </div>
+        </CardContent>
+      </Card>
+      <h1 className="text-2xl font-semibold">Achievements</h1>
+      <Card>
+        <CardHeader>
+          <CardTitle>Your achievements</CardTitle>
+          <CardDescription>Keep leveling up your habits. New achievements unlock automatically.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!items.length ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {items.map((a) => {
+                const unlocked = !!a.unlocked_at;
+                return (
+                  <div
+                    key={a.key}
+                    className={`rounded-lg border p-3 ${unlocked ? "bg-emerald-50/40 border-emerald-200" : "bg-muted/30"}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Icon name={a.icon ?? undefined} />
+                        <div className="font-medium">{a.title}</div>
+                      </div>
+                      <Badge variant={unlocked ? "default" : "secondary"}>
+                        {unlocked ? "Unlocked" : "Locked"}
+                      </Badge>
+                    </div>
+                    {a.description && (
+                      <div className="text-sm text-muted-foreground mt-1">{a.description}</div>
+                    )}
+                    {!unlocked && a.target ? (
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Goal: {a.target}
+                      </div>
+                    ) : null}
+                    {unlocked && (
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Unlocked {new Date(a.unlocked_at!).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

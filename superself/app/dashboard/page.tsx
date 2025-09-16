@@ -5,6 +5,7 @@ import { fetchModulesWithProgress, Module } from "@/lib/dashboard";
 import ModuleCard from "@/components/dashboard/ModuleCard";
 import JourneyCard from "@/components/dashboard/JourneyCard";
 import { Button } from "@/components/ui/button";
+import { AchievementUnlockToaster } from "@/components/achievements/unlock-toaster";
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
@@ -43,6 +44,7 @@ export default function DashboardPage() {
 
     return (
         <div className="max-w-2xl mx-auto mt-10">
+            <AchievementUnlockToaster />
             <h1 className="text-2xl font-bold">Welcome back 💪</h1>
             <h2 className="text-lg mt-4 font-bold">Your Learning Journey</h2>
 
