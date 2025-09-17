@@ -137,7 +137,37 @@ export type XpEvent = {
   createdAtISO: string;
 };
 
+//Gruppen
+export type GroupVisibility = "public" | "private";
+export type GroupRole = "owner" | "admin" | "member";
 
+export type Group = {
+  id: number;
+  slug: string | null;
+  name: string;
+  description: string | null;
+  avatar_url: string | null;
+  visibility: GroupVisibility;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GroupMember = {
+  id: number;
+  group_id: number;
+  user_id: string;
+  role: GroupRole;
+  created_at: string;
+  profile: {
+    id: string;
+    username: string | null;
+    name: string | null;
+    avatar_url: string | null;
+    level: number | null;
+    xp: number | null;
+  } | null;
+};
 
 
 

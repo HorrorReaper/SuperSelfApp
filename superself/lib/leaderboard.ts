@@ -90,3 +90,32 @@ export async function fetchGlobalLeaderboard(period: Period, limit = 50) {
   if (error) throw error;
   return (data ?? []) as LeaderRow[];
 }
+export async function fetchGroupLeaderboard(groupId: number, period: "7d"|"30d"|"alltime", limit = 50) {
+  const key = period === "alltime" ? "xp_alltime" : period === "7d" ? "xp_7d" : "xp_30d";
+
+  // 1) Ensure I can read members (RLS allows if I'm member or group is public)
+  // 2) Join to leaderboards (public read)
+  const { data, error } = await supabase
+    .from("group_members")
+    .select(`
+      user_id,
+      profile:profiles(id, username, name, avatar_url, level, xp),
+      lb:leaderboards(user_id, xp_alltime, xp_7d, xp_30d)
+    `)
+    .eq("group_id", groupId);
+
+  if (error) throw error;
+
+  const rows = (data ?? [])
+    .map((r: any) => ({
+      user_id: r.user_id,
+      profile: r.profile,
+      xp_alltime: r.lb?.xp_alltime ?? 0,
+      xp_7d: r.lb?.xp_7d ?? 0,
+      xp_30d: r.lb?.xp_30d ?? 0,
+    }))
+    .sort((a, b) => (b as any)[key] - (a as any)[key])
+    .slice(0, limit);
+
+  return rows;
+}

@@ -1,13 +1,19 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { awardXpServer } from "@/lib/xp-server";
+import { insertActivity } from "@/lib/social";
+import { supabase } from "@/lib/supabase";
+import { completeTinyHabit } from "@/lib/local";
 
 type Props = {
   habitType: "timeboxing" | "lights_down" | "mobility";
   day: number;
-  done: boolean;
+  done: boolean;                 // Parent controls this; we reflect it
   onComplete: (done: boolean) => void;
 };
 
@@ -29,8 +35,128 @@ const LABELS: Record<Props["habitType"], { title: string; desc: string; cta?: st
   },
 };
 
-export function TinyHabitCard({ habitType, done, onComplete }: Props) {
+// Tweak as desired
+const TINY_HABIT_XP = 10;
+
+export function TinyHabitCard({ habitType, day, done, onComplete }: Props) {
   const cfg = LABELS[habitType];
+
+  // Timer state (only used for mobility) - 2 minutes
+  const DURATION_SEC = 120;
+  const [running, setRunning] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(DURATION_SEC);
+  const [awarding, setAwarding] = useState(false);
+  const timerRef = useRef<number | null>(null);
+  const alreadyDoneRef = useRef(done); // capture initial done
+
+  // Keep local UI consistent if parent toggles "done"
+  useEffect(() => {
+    if (done) {
+      setRunning(false);
+      setSecondsLeft(DURATION_SEC);
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    alreadyDoneRef.current = done;
+  }, [done, DURATION_SEC]);
+
+  const timeLabel = useMemo(() => {
+    const m = Math.floor(secondsLeft / 60);
+    const s = secondsLeft % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }, [secondsLeft]);
+
+  async function awardOnce() {
+    // Prevent double-awards client side; server upsert is also idempotent
+    if (awarding || alreadyDoneRef.current) return;
+    setAwarding(true);
+    try {
+      const { error } = await awardXpServer("tiny_habit", day, TINY_HABIT_XP);
+      if (!error || /duplicate key|unique/i.test(error.message)) {
+        toast.success(`+${TINY_HABIT_XP} XP`, { description: "Tiny habit completed" });
+        alreadyDoneRef.current = true;
+        // Try to insert an activity row so the navbar and friends feed show this tiny habit
+        try {
+          const { data: auth } = await supabase.auth.getUser();
+          const uid = auth.user?.id;
+          if (uid) {
+            await insertActivity({ actor_id: uid, type: "tiny_habit", day, xp: TINY_HABIT_XP, message: null }).catch(() => {});
+            completeTinyHabit(day, true);
+          }
+        } catch (e) {
+          // best-effort; ignore errors
+          console.error("Tiny habit activity insert failed", e);
+        }
+      } else {
+        toast.error("XP sync failed", { description: error.message });
+      }
+    } catch (e: any) {
+      toast.error("XP sync failed", { description: e?.message ?? "Unknown error" });
+    } /*finally {
+      setAwarding(false);
+    }*/
+  }
+
+  function startTimer() {
+    if (running || done) return;
+    setRunning(true);
+    setSecondsLeft(DURATION_SEC);
+    if (timerRef.current) window.clearInterval(timerRef.current);
+    timerRef.current = window.setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          // Finish
+          if (timerRef.current) {
+            window.clearInterval(timerRef.current); 
+            timerRef.current = null;
+          }
+          setRunning(false);
+          // Mark done + award (deferred to avoid setState during render)
+          queueMicrotask(() => onComplete(true));
+          void awardOnce();
+          return DURATION_SEC;
+        }
+        return prev - 1;
+      });
+  }, 1000) as unknown as number;
+  }
+
+  function cancelTimer() {
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setRunning(false);
+    setSecondsLeft(DURATION_SEC);
+  }
+
+  async function handleManualComplete(checked: boolean | string) {
+    const isDone = Boolean(checked);
+    if (isDone) {
+      // defer parent update to avoid setState-in-render
+      queueMicrotask(() => onComplete(true));
+      await awardOnce();
+    } else {
+      // defer uncheck as well
+      queueMicrotask(() => onComplete(false));
+    }
+  }
+
+  function handleCTA() {
+    // You can replace these with real actions (calendar deep link, Notification API prompt, etc.)
+    if (habitType === "mobility") {
+      startTimer();
+    } else if (habitType === "timeboxing") {
+      // simple helpful default: open Google Calendar
+      window.open("https://calendar.google.com/calendar/u/0/r/week", "_blank", "noopener,noreferrer");
+    } else if (habitType === "lights_down") {
+      // basic reminder suggestion
+      toast("Tip", { description: "Set a phone reminder for lights-down hour tonight." });
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -38,11 +164,21 @@ export function TinyHabitCard({ habitType, done, onComplete }: Props) {
         <CardDescription>{cfg.desc}</CardDescription>
       </CardHeader>
       <CardContent className="flex items-center gap-3">
-        <Checkbox checked={done} onCheckedChange={(v) => onComplete(Boolean(v))} />
-        <div className="text-sm">{done ? "Completed today" : "Mark done when completed"}</div>
-        <div className="ml-auto">
-          {cfg.cta ? (
-            <Button variant="secondary" onClick={() => alert(`${cfg.cta} (stub)`)}>{cfg.cta}</Button>
+        <Checkbox
+          checked={done}
+          disabled={awarding || running}
+          onCheckedChange={handleManualComplete}
+        />
+        <div className="text-sm">
+          {done ? "Completed today" : habitType === "mobility" && running ? `Timer: ${timeLabel}` : "Mark done when completed"}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {habitType === "mobility" && running ? (
+            <Button variant="ghost" onClick={cancelTimer}>Cancel</Button>
+          ) : cfg.cta ? (
+            <Button variant="secondary" onClick={handleCTA} disabled={done || awarding}>
+              {cfg.cta}
+            </Button>
           ) : null}
         </div>
       </CardContent>
