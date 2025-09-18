@@ -6,10 +6,12 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { fetchMyMembership, joinGroup, leaveGroup} from "@/lib/groups";
 import { Group } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 export function GroupCard({ group, onChanged }: { group: Group; onChanged?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [member, setMember] = useState<null | { role: string }>(null);
+  const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
@@ -43,7 +45,7 @@ export function GroupCard({ group, onChanged }: { group: Group; onChanged?: () =
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden cursor-pointer" onClick={() => router.push(`/groups/${group.id}`)}>
       <CardHeader className="flex-row items-center gap-3">
         <div className="relative h-12 w-12 overflow-hidden rounded-md bg-muted">
           {group.avatar_url ? (
