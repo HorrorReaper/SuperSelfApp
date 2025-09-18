@@ -1,8 +1,16 @@
-export default function ProductivityPage() {
+// app/productivity-hub/page.tsx
+import { HubCalendar } from "@/components/hub/productivity/hub-calendar";
+import { HubTasks } from "@/components/hub/productivity/hub-tasks";
+import { HubTimer } from "@/components/hub/productivity/hub-timer";
+
+export default function ProductivityHubPage() {
   return (
-    <div>
-      <h1>Productivity Tools</h1>
-      <p>Welcome to the productivity hub!</p>
-    </div>
+    <>
+      <main className="mx-auto max-w-screen-sm p-4 space-y-4">
+        <HubCalendar />
+        <HubTasks />
+        <HubTimer />
+      </main>
+    </>
   );
 }

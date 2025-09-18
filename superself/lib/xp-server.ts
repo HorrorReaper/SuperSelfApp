@@ -8,3 +8,11 @@ export async function awardXpServer(kind: "day_complete"|"weekly_retro"|"mood_ch
   const { error } = await supabase.from("xp_events").upsert([{ user_id: user.id, kind, day, amount }], { onConflict: "user_id,kind,day", ignoreDuplicates: true });
   return { error };
 }
+export async function awardFocusSessionXP(amount: number, day: number | null) {
+  // @ts-expect-error widen kind server-side via SQL change
+  return awardXpServer("focus_session", day, amount);
+}
+export async function awardTaskCompleteXP(amount: number, day: number | null) {
+  // @ts-expect-error widen kind server-side via SQL change
+  return awardXpServer("task_complete", day, amount);
+}
