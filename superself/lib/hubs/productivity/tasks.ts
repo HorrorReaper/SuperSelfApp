@@ -13,14 +13,29 @@ export async function listTasks() {
   return (data ?? []) as Task[];
 }
 
-export async function addTask(payload: { text: string; essential?: boolean; frog?: boolean; due_date?: string | null }) {
+export async function addTask(payload: {
+  text: string;
+  essential?: boolean;
+  frog?: boolean;
+  due_date?: string | null;
+}) {
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) throw authErr ?? new Error("Not signed in");
+
   const { data, error } = await supabase
     .from("tasks")
-    .insert([payload])
+    .insert([{
+      user_id: user.id,                      // <-- add this
+      text: payload.text,
+      essential: !!payload.essential,
+      frog: !!payload.frog,
+      due_date: payload.due_date ?? null,
+    }])
     .select("*")
     .single();
+
   if (error) throw error;
-  return data as Task;
+  return data;
 }
 
 export async function toggleTaskCompleted(id: number, completed: boolean) {

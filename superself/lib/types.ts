@@ -184,3 +184,14 @@ export type Task = {
   created_at: string;
   updated_at: string;
 };
+export type Note = {
+  id: number;
+  user_id: string;
+  title: string | null;
+  content: string;
+  is_scratchpad: boolean;
+  created_at: string;
+  updated_at: string;
+};
+export type WidgetId = "calendar" | "tasks" | "notepad" | "timer";
+export type WidgetItem = { id: WidgetId; visible: boolean };
