@@ -1,35 +1,8 @@
 // lib/social.ts
 import { supabase} from "@/lib/supabase";
+import { Activity, Friendship, Profile } from "./types";
 
-export type Profile = {
-  id: string;
-  username: string | null;
-  name: string | null;
-  avatar_url: string | null;
-  level: number;
-  xp: number;
-  streak: number;
-  today_day: number;
-};
 
-export type Friendship = {
-  id: number;
-  requester_id: string;
-  addressee_id: string;
-  status: "pending" | "accepted" | "blocked";
-  created_at: string;
-  updated_at: string;
-};
-
-export type Activity = {
-  id: number;
-  actor_id: string;
-  type: "day_complete" | "level_up" | "tiny_habit" | "weekly_retro" | "mood_checkin" | "cheer";
-  day: number | null;
-  xp: number | null;
-  message: string | null;
-  created_at: string;
-};
 
 export async function meId() {
   

@@ -1,12 +1,7 @@
 // lib/ics.ts
-export type ICSOptions = {
-  title: string;
-  description?: string;
-  location?: string;
-  start: Date; // local start time, we’ll store as UTC in ICS
-  durationMinutes: number;
-  allDay?: boolean;
-};
+
+import { ICSOptions } from "./types";
+
 
 function pad(n: number) {
   return n < 10 ? `0${n}` : String(n);

@@ -16,3 +16,7 @@ export async function awardTaskCompleteXP(amount: number, day: number | null) {
   // @ts-expect-error widen kind server-side via SQL change
   return awardXpServer("task_complete", day, amount);
 }
+export async function awardFlashcardsXP(amount: number, day: number | null) {
+  // @ts-expect-error widen kind allowed server-side
+  return awardXpServer("flashcards_practice", day, amount);
+}

@@ -169,7 +169,45 @@ export type GroupMember = {
   } | null;
 };
 
+export type ICSOptions = {
+  title: string;
+  description?: string;
+  location?: string;
+  start: Date; // local start time, we’ll store as UTC in ICS
+  durationMinutes: number;
+  allDay?: boolean;
+};
 
+//Social
+export type Profile = {
+  id: string;
+  username: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  level: number;
+  xp: number;
+  streak: number;
+  today_day: number;
+};
+
+export type Friendship = {
+  id: number;
+  requester_id: string;
+  addressee_id: string;
+  status: "pending" | "accepted" | "blocked";
+  created_at: string;
+  updated_at: string;
+};
+
+export type Activity = {
+  id: number;
+  actor_id: string;
+  type: "day_complete" | "level_up" | "tiny_habit" | "weekly_retro" | "mood_checkin" | "cheer";
+  day: number | null;
+  xp: number | null;
+  message: string | null;
+  created_at: string;
+};
 
 //Productivity Hub
 export type Task = {
@@ -195,3 +233,32 @@ export type Note = {
 };
 export type WidgetId = "calendar" | "tasks" | "notepad" | "timer";
 export type WidgetItem = { id: WidgetId; visible: boolean };
+
+//learning hub
+export type Deck = {
+  id: number;
+  user_id: string;
+  title: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Card = {
+  id: number;
+  deck_id: number;
+  user_id: string;
+  front: string;
+  back: string;
+  card_type: "basic" | "true_false" | "typing";
+  tags: string[] | null;
+  box: number;
+  ease: number;
+  interval_days: number;
+  due_date: string | null;
+  last_reviewed_at: string | null;
+  total_reviews: number;
+  correct_reviews: number;
+  created_at: string;
+  updated_at: string;
+};
