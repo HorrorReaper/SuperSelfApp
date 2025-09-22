@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { awardXpServer } from "@/lib/xp-server";
 import { insertActivity } from "@/lib/social";
 import { supabase } from "@/lib/supabase";
-import { completeTinyHabit } from "@/lib/local";
+import { completeTinyHabit, loadState, saveState, STATE_UPDATED_EVENT } from "@/lib/local";
 
 type Props = {
   habitType: "timeboxing" | "lights_down" | "mobility";
@@ -83,7 +83,20 @@ export function TinyHabitCard({ habitType, day, done, onComplete }: Props) {
           const uid = auth.user?.id;
           if (uid) {
             await insertActivity({ actor_id: uid, type: "tiny_habit", day, xp: TINY_HABIT_XP, message: null }).catch(() => {});
-            completeTinyHabit(day, true);
+            // Update local challenge state: mark tiny habit done and bump xp so navbar updates immediately
+            try {
+              completeTinyHabit(day, true);
+              const s = loadState();
+              if (s) {
+                s.xp = (s.xp ?? 0) + TINY_HABIT_XP;
+                saveState(s);
+                // Notify listeners (same-tab)
+                window.dispatchEvent(new CustomEvent(STATE_UPDATED_EVENT));
+              }
+            } catch (e) {
+              // swallow local update errors
+              console.error("local state update failed", e);
+            }
           }
         } catch (e) {
           // best-effort; ignore errors

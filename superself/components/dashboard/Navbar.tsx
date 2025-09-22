@@ -61,7 +61,7 @@ export function NavBar({
               href={l.href}
               aria-current={isActive(l.href) ? "page" : undefined}
               className={cn(
-                "px-3 py-1.5 text-sm rounded-md transition-colors",
+                "px-3 py-1.5 text-sm rounded-md transition-colors cursor-pointer",
                 isActive(l.href)
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
@@ -72,35 +72,35 @@ export function NavBar({
           ))}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={cn("px-3 py-1.5 text-sm rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/70")}>
+              <button className={cn("px-3 py-1.5 text-sm rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/70 cursor-pointer")}>
                 Social
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem asChild>
-                <Link href="/friends" className="w-full">Friends</Link>
+                <Link href="/friends" className="w-full cursor-pointer">Friends</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/groups" className="w-full">Groups</Link>
+                <Link href="/groups" className="w-full cursor-pointer">Groups</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/leaderboard" className="w-full">Leaderboard</Link>
+                <Link href="/leaderboard" className="w-full cursor-pointer">Leaderboard</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {/* Hubs dropdown (desktop) - keep open while hovering or focusing */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={cn("px-3 py-1.5 text-sm rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/70")}>
+              <button className={cn("px-3 py-1.5 text-sm rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/70 cursor-pointer")}>
                 Hubs
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem asChild>
-                <Link href="/hubs/productivity" className="w-full">Productivity hub</Link>
+                <Link href="/hubs/productivity" className="w-full cursor-pointer">Productivity hub</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/hubs/learning" className="w-full">Learning hub</Link>
+                <Link href="/hubs/learning" className="w-full cursor-pointer">Learning hub</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
