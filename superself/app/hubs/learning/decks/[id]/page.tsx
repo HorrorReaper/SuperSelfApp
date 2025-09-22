@@ -2,8 +2,9 @@
 
 import { DeckEditor } from "@/components/hub/learning/deck-editor";
 
-export default function DeckPage({ params }: { params: { id: string } }) {
-  const deckId = Number(params.id);
+export default async function DeckPage({ params }: { params: { id: string } }) {
+  const { id } = await params;
+  const deckId = Number(id);
   return (
     <>
       <main className="mx-auto max-w-screen-sm p-4 space-y-4">

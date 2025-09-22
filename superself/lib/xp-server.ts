@@ -1,7 +1,7 @@
 // lib/xp-server.ts
 import { supabase } from "@/lib/supabase";
 
-export async function awardXpServer(kind: "day_complete"|"weekly_retro"|"mood_checkin"|"tiny_habit", day: number | null, amount: number) {
+export async function awardXpServer(kind: "day_complete"|"weekly_retro"|"mood_checkin"|"tiny_habit"| "focus_session" | "flashcards_practice" | "task_complete", day: number | null, amount: number) {
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return { error: authErr ?? new Error("Not signed in") };
 

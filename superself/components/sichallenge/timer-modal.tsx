@@ -256,6 +256,18 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
             <Button className="flex-1" variant="secondary" onClick={handleReset} disabled={running || elapsed === 0}>
               Reset
             </Button>
+            <Button
+    className="flex-1"
+    variant="ghost"
+    onClick={() => {
+      // Use current target or minutes shown.
+      // The focus page reads state from localStorage,
+      // so we just open it in a new tab.
+      window.open("/focus", "_blank", "noopener,noreferrer");
+    }}
+  >
+    Open in new tab
+  </Button>
           </div>
 
           {isComplete() ? (
