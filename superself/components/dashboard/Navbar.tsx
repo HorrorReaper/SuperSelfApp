@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Trophy } from "lucide-react";
 import * as React from "react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils"; // or use the helper at the bottom
 
 type Props = {
@@ -31,9 +32,6 @@ export function NavBar({
   const links = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/journeys/self-improvement-journey", label: "Journey" },
-    { href: "/friends", label: "Friends" }, 
-    { href: "/groups", label: "Groups" },
-    { href: "/leaderboard", label: "Leaderboard" },
   ];
 
   const pct = Math.round(Math.min(1, Math.max(0, xpPct)) * 100);
@@ -72,6 +70,40 @@ export function NavBar({
               {l.label}
             </Link>
           ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn("px-3 py-1.5 text-sm rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/70")}>
+                Social
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem asChild>
+                <Link href="/friends" className="w-full">Friends</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/groups" className="w-full">Groups</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/leaderboard" className="w-full">Leaderboard</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* Hubs dropdown (desktop) - keep open while hovering or focusing */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn("px-3 py-1.5 text-sm rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/70")}>
+                Hubs
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem asChild>
+                <Link href="/hubs/productivity" className="w-full">Productivity hub</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/hubs/learning" className="w-full">Learning hub</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
         {/* Right: level/xp + user button */}
@@ -122,6 +154,11 @@ export function NavBar({
               {l.label}
             </Link>
           ))}
+          <Link href="/friends" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Friends</Link>
+          <Link href="/groups" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Groups</Link>
+          <Link href="/leaderboard" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Leaderboard</Link>
+          <Link href="/hubs/productivity" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Productivity hub</Link>
+          <Link href="/hubs/learning" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Learning hub</Link>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { loadState } from "@/lib/local";
 import type { ChallengeState } from "@/lib/types";
 import { xpProgress } from "@/lib/gamification";
@@ -13,6 +14,11 @@ export function ChallengeNavBarConnected({
   title?: string;
   rightSlot?: React.ReactNode;
 }) {
+  const pathname = usePathname?.() || "/";
+  // Hide the global navbar on auth pages (sign-in / sign-up and any /auth/*)
+  if (pathname.startsWith("/auth")) {
+    return null;
+  }
   const [data, setData] = useState(() => {
     const s = loadState<ChallengeState>();
     const xp = s?.xp ?? 0;

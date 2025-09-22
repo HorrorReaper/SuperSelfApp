@@ -20,3 +20,14 @@ export async function awardFlashcardsXP(amount: number, day: number | null) {
   // @ts-expect-error widen kind allowed server-side
   return awardXpServer("flashcards_practice", day, amount);
 }
+export async function loadXPFromServer() {
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return { error: authErr ?? new Error("Not signed in"), xp: 0, level: 1, nextLevelXP: 100, xpPct: 0 };
+  const { data, error } = await supabase.from("users").select("xp").eq("id", user.id).single();
+  if (error || !data) return { error, xp: 0, level: 1, nextLevelXP: 100, xpPct: 0 };
+  const xp = data.xp ?? 0;
+  const level = Math.floor(0.1 * Math.sqrt(xp));
+  const nextLevelXP = Math.floor(((level + 1) / 0.1) ** 2);
+  const xpPct = (xp - (level / 0.1) ** 2) / (nextLevelXP - (level / 0.1) ** 2);
+  return { error: null, xp, level, nextLevelXP, xpPct };
+}
