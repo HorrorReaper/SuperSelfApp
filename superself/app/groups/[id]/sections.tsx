@@ -10,6 +10,7 @@ import { GroupLeaderboard } from "@/components/groups/group-leaderboard";
 import { fetchGroup, fetchMyMembership, joinGroup, leaveGroup} from "@/lib/groups";
 import { fetchGroupLeaderboard } from "@/lib/leaderboard";
 import { xpProgress } from "@/lib/gamification";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Group } from "@/lib/types";
 
@@ -96,9 +97,18 @@ export function GroupPageClient({ groupId }: { groupId: number }) {
             {groupXp == null ? (
               <span className="text-sm text-muted-foreground">Group XP: —</span>
             ) : (
-              <div className="text-sm text-muted-foreground">
-                <span className="mr-3">Group XP: {groupXp.toLocaleString()}</span>
-                <span>Lv {xpProgress(groupXp).level} · {xpProgress(groupXp).inLevel}/{xpProgress(groupXp).needed} XP</span>
+              <div className="flex items-center gap-4">
+                <div className="relative flex h-14 w-14 items-center justify-center">
+                  <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-white font-bold text-lg shadow">{xpProgress(groupXp).level}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">{group.name}</div>
+                  <div className="text-xs text-muted-foreground">Group XP: {groupXp.toLocaleString()}</div>
+                  <div className="mt-2 w-64">
+                    <Progress value={Math.round(xpProgress(groupXp).pct * 100)} />
+                    <div className="mt-1 text-xs text-muted-foreground">{xpProgress(groupXp).inLevel}/{xpProgress(groupXp).needed} XP to next level</div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
