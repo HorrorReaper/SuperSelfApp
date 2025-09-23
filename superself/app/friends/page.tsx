@@ -419,6 +419,7 @@ import {
   type Friendship,
   type Activity,
 } from "@/lib/social";
+import Link from "next/link";
 
 function initials(name?: string | null) {
   return (name ?? "You")
@@ -632,10 +633,12 @@ export default function FriendsPage() {
               ) : (
                 friends.map((p) => (
                   <div key={p.id} className="flex items-center gap-3">
+<Link href={`/u/${p.username ?? p.id}`}>
+
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={p.avatar_url ?? undefined} alt={p.name ?? p.username ?? ""} />
                       <AvatarFallback>{initials(p.name ?? p.username)}</AvatarFallback>
-                    </Avatar>
+                    </Avatar></Link>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{p.name ?? p.username}</div>
                       <div className="text-xs text-muted-foreground">

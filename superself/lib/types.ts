@@ -262,3 +262,22 @@ export type Card = {
   created_at: string;
   updated_at: string;
 };
+
+
+export type PublicProfile = {
+  id: string;
+  username: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  level: number | null;
+  xp: number | null;
+};
+
+export type PublicAchievement = {
+  key: string;
+  title: string;
+  description: string;
+  icon: string | null;
+  points: number | null;
+  unlocked_at: string | null;
+};

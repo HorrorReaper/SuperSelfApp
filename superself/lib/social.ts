@@ -1,6 +1,6 @@
 // lib/social.ts
 import { supabase} from "@/lib/supabase";
-import { Activity, Friendship, Profile } from "./types";
+import { Activity, Friendship, Profile, PublicAchievement, PublicProfile } from "./types";
 
 
 
@@ -72,4 +72,44 @@ export async function fetchProfilesByIds(ids: string[]) {
 
 export async function insertActivity(payload: Omit<Activity, "id" | "created_at">) {
   return supabase.from("activity").insert([payload]);
+}
+export async function fetchProfileByUsername(username: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, username, name, avatar_url, level, xp")
+    .eq("username", username)
+    .maybeSingle();
+  if (error) throw error;
+  return data as PublicProfile | null;
+}
+
+export async function fetchProfileById(id: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, username, name, avatar_url, level, xp")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as PublicProfile | null;
+}
+
+export async function fetchLeaderboardSlices(userId: string) {
+  const { data, error } = await supabase
+    .from("leaderboards")
+    .select("user_id, xp_alltime, xp_7d, xp_30d")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? { user_id: userId, xp_alltime: 0, xp_7d: 0, xp_30d: 0 };
+}
+export async function fetchPublicAchievements(userId: string): Promise<PublicAchievement[]> {
+  const { data, error } = await supabase.rpc("public_achievements_for_user", { p_user_id: userId });
+  if (error) throw error;
+  return (data ?? []) as PublicAchievement[];
+}
+
+export async function fetchPublicActivity(userId: string, limit = 20) {
+  const { data, error } = await supabase.rpc("public_activity_for_user", { p_user_id: userId, p_limit: limit });
+  if (error) throw error;
+  return data ?? [];
 }
