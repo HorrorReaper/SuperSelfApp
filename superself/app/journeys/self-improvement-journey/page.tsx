@@ -81,7 +81,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (state?.todayDay && state.todayDay % 7 === 0) {
-      setRetroOpen(true);
+      const weekIndex = Math.ceil(state.todayDay / 7);
+      const savedWeeks: number[] = (state as any).retrosSaved ?? [];
+      if (!savedWeeks.includes(weekIndex)) {
+        setRetroOpen(true);
+      }
     }
     if (!state) return;
     const todayDay = state.todayDay;
@@ -221,6 +225,24 @@ export default function DashboardPage() {
     completeTinyHabit(todayDay, done);
     const s = loadState<ChallengeState>();
     if (s) setState(s);
+  }
+
+  // Called when the weekly retro modal successfully saves a retro for the current week
+  function handleRetroSaved() {
+    setRetroOpen(false);
+    const latest = loadState<ChallengeState>() ?? (state as ChallengeState);
+    const next: any = { ...latest };
+    const weekIndex = Math.ceil(todayDay / 7);
+    next.retrosSaved = next.retrosSaved ?? [];
+    if (!next.retrosSaved.includes(weekIndex)) {
+      next.retrosSaved.push(weekIndex);
+      try {
+        saveState(next);
+        setState(next);
+      } catch (e) {
+        console.error("Failed to persist retro saved state", e);
+      }
+    }
   }
 
   // Briefs
@@ -376,6 +398,7 @@ export default function DashboardPage() {
         onOpenChange={setRetroOpen}
         weekIndex={Math.ceil(todayDay / 7)}
         targetMinutesPerDay={targetMinutes}
+        onSaved={handleRetroSaved}
       />
       <MoodCheckinModal
         open={checkinOpen}

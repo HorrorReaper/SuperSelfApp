@@ -130,9 +130,10 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   weekIndex: number; // 1..4 (or more if you extend)
   targetMinutesPerDay: number;
+  onSaved?: () => void; // optional callback invoked after a successful save
 };
 
-export function WeeklyRetroModal({ open, onOpenChange, weekIndex, targetMinutesPerDay }: Props) {
+export function WeeklyRetroModal({ open, onOpenChange, weekIndex, targetMinutesPerDay, onSaved }: Props) {
   const [summary, setSummary] = React.useState<{ text: string; suggestion: string } | null>(null);
   const [answers, setAnswers] = React.useState({ worked: "", blockers: "", tweak: "" });
   const [saving, setSaving] = React.useState(false);     // NEW
@@ -180,7 +181,12 @@ export function WeeklyRetroModal({ open, onOpenChange, weekIndex, targetMinutesP
         insertActivity({ actor_id: uid, type: "weekly_retro", day: weekIndex, xp: XP, message: null })
           .catch(() => {});
       }
-
+      // Notify parent that a retro was saved (so it can persist flags, close modals, etc.)
+      try {
+        if (onSaved) onSaved();
+      } catch (e) {
+        console.error("onSaved callback failed", e);
+      }
       onOpenChange(false);
     } finally {
       setSaving(false);
