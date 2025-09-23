@@ -5,18 +5,44 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { fetchMyMembership, joinGroup, leaveGroup} from "@/lib/groups";
+import { fetchGroupLeaderboard } from "@/lib/leaderboard";
+import { xpProgress } from "@/lib/gamification";
 import { Group } from "@/lib/types";
 import { useRouter } from "next/navigation";
 
 export function GroupCard({ group, onChanged }: { group: Group; onChanged?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [member, setMember] = useState<null | { role: string }>(null);
+  const [groupXp, setGroupXp] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
     fetchMyMembership(group.id).then(m => { if (mounted) setMember(m ? { role: m.role } : null); })
       .catch(()=>{});
+    // Load group XP (sum of member xp). Best-effort; may be omitted if leaderboard query fails.
+    fetchGroupLeaderboard(group.id, "alltime", 500)
+      .then((rows) => {
+        if (!mounted) return;
+        // Dedupe by user_id then sum profile.xp to avoid duplicate rows inflating the total
+        const map = new Map<string, number>();
+        (rows ?? []).forEach(r => {
+          const id = r.user_id;
+          if (!id) return;
+          const xp = Number(r.profile?.xp ?? 0) || 0;
+          // keep the max xp for this user if multiple rows appear
+          const prev = map.get(id) ?? 0;
+          if (xp > prev) map.set(id, xp);
+        });
+        const total = Array.from(map.values()).reduce((s, v) => s + v, 0);
+        setGroupXp(total);
+      })
+      .catch((err) => {
+        // Log errors so developers can spot RLS / permission problems in the console
+        // Keep groupXp as null to indicate we didn't load it
+        // eslint-disable-next-line no-console
+        console.error("fetchGroupLeaderboard failed for group", group.id, err);
+      });
     return () => { mounted = false; };
   }, [group.id]);
 
@@ -55,6 +81,17 @@ export function GroupCard({ group, onChanged }: { group: Group; onChanged?: () =
         <div className="min-w-0 flex-1">
           <CardTitle className="truncate">{group.name}</CardTitle>
           <CardDescription className="truncate">{group.description}</CardDescription>
+          <div className="mt-1">
+            {groupXp == null ? (
+              <span className="text-xs text-muted-foreground">Group XP: —</span>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                <span className="mr-2">Group XP: {groupXp.toLocaleString()}</span>
+                <span>Lv {xpProgress(groupXp).level} · {xpProgress(groupXp).inLevel}/{xpProgress(groupXp).needed} XP</span>
+              </div>
+            )}
+          </div>
+
         </div>
         <div className="ml-2">
           {member ? (

@@ -8,6 +8,8 @@ import { GroupActivity } from "@/components/groups/group-activity";
 import { GroupMembers } from "@/components/groups/group-members";
 import { GroupLeaderboard } from "@/components/groups/group-leaderboard";
 import { fetchGroup, fetchMyMembership, joinGroup, leaveGroup} from "@/lib/groups";
+import { fetchGroupLeaderboard } from "@/lib/leaderboard";
+import { xpProgress } from "@/lib/gamification";
 import { toast } from "sonner";
 import { Group } from "@/lib/types";
 
@@ -16,6 +18,7 @@ export function GroupPageClient({ groupId }: { groupId: number }) {
   const [loading, setLoading] = useState(false);
   const [memberRole, setMemberRole] = useState<"owner"|"admin"|"member"|"none">("none");
   const [joining, setJoining] = useState(false);
+  const [groupXp, setGroupXp] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
@@ -29,6 +32,32 @@ export function GroupPageClient({ groupId }: { groupId: number }) {
   }
 
   useEffect(() => { load(); }, [groupId]);
+
+  // Fetch aggregated group XP (sum of members' profile.xp)
+  useEffect(() => {
+    let mounted = true;
+    fetchGroupLeaderboard(groupId, "alltime", 1000)
+      .then((rows) => {
+        if (!mounted) return;
+        // Map by user_id to avoid counting duplicate rows for the same user
+        const map = new Map<string, number>();
+        (rows ?? []).forEach(r => {
+          const id = r.user_id;
+          if (!id) return;
+          const xp = Number(r.profile?.xp ?? 0) || 0;
+          const prev = map.get(id) ?? 0;
+          if (xp > prev) map.set(id, xp);
+        });
+        const total = Array.from(map.values()).reduce((s, v) => s + v, 0);
+        setGroupXp(total);
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error("fetchGroupLeaderboard failed", err);
+        if (mounted) setGroupXp(null);
+      });
+    return () => { mounted = false; };
+  }, [groupId]);
 
   async function onJoin() {
     setJoining(true);
@@ -63,6 +92,16 @@ export function GroupPageClient({ groupId }: { groupId: number }) {
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-semibold">{group.name}</h1>
           <p className="truncate text-sm text-muted-foreground">{group.description}</p>
+          <div className="mt-1">
+            {groupXp == null ? (
+              <span className="text-sm text-muted-foreground">Group XP: —</span>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                <span className="mr-3">Group XP: {groupXp.toLocaleString()}</span>
+                <span>Lv {xpProgress(groupXp).level} · {xpProgress(groupXp).inLevel}/{xpProgress(groupXp).needed} XP</span>
+              </div>
+            )}
+          </div>
         </div>
         <div>
           {memberRole === "none" ? (

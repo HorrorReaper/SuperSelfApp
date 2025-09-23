@@ -70,7 +70,17 @@ export async function fetchFriendsLeaderboard(period: Period, limit = 50) {
     .limit(limit);
 
   if (error) throw error;
-  return data ?? [];
+  const rows = (data ?? []).map((r: any) => {
+    const profile = Array.isArray(r.profile) ? r.profile[0] : r.profile;
+    return {
+      user_id: r.user_id,
+      xp_alltime: r.xp_alltime ?? 0,
+      xp_7d: r.xp_7d ?? 0,
+      xp_30d: r.xp_30d ?? 0,
+      profile,
+    } as LeaderRow;
+  });
+  return rows;
 }
 export async function fetchGlobalLeaderboard(period: Period, limit = 50) {
 
@@ -88,34 +98,72 @@ export async function fetchGlobalLeaderboard(period: Period, limit = 50) {
     .limit(limit);
 
   if (error) throw error;
-  return (data ?? []) as LeaderRow[];
+  const rows = (data ?? []).map((r: any) => {
+    const profile = Array.isArray(r.profile) ? r.profile[0] : r.profile;
+    return {
+      user_id: r.user_id,
+      xp_alltime: r.xp_alltime ?? 0,
+      xp_7d: r.xp_7d ?? 0,
+      xp_30d: r.xp_30d ?? 0,
+      profile,
+    } as LeaderRow;
+  });
+  return rows;
 }
 export async function fetchGroupLeaderboard(groupId: number, period: "7d"|"30d"|"alltime", limit = 50) {
   const key = period === "alltime" ? "xp_alltime" : period === "7d" ? "xp_7d" : "xp_30d";
-
-  // 1) Ensure I can read members (RLS allows if I'm member or group is public)
-  // 2) Join to leaderboards (public read)
-  const { data, error } = await supabase
+  // 1) Fetch member user IDs for the group. Keep this simple so it works even without
+  // a foreign-key relationship to `leaderboards` in the schema cache.
+  const { data: members, error: membersErr } = await supabase
     .from("group_members")
+    .select("user_id")
+    .eq("group_id", groupId);
+  if (membersErr) throw membersErr;
+  // Remove any duplicate user_ids from group_members before querying leaderboards
+  const ids = Array.from(new Set((members ?? []).map((m: any) => m.user_id).filter(Boolean)));
+  if (ids.length === 0) return [];
+
+  // 2) Query leaderboards for those user ids and join profiles from the leaderboards side.
+  const { data, error } = await supabase
+    .from("leaderboards")
     .select(`
       user_id,
-      profile:profiles(id, username, name, avatar_url, level, xp),
-      lb:leaderboards(user_id, xp_alltime, xp_7d, xp_30d)
+      xp_alltime,
+      xp_7d,
+      xp_30d,
+      profile:profiles(id, username, name, avatar_url, level, xp)
     `)
-    .eq("group_id", groupId);
+    .in("user_id", ids)
+    .order(key, { ascending: false, nullsFirst: false })
+    .limit(limit);
 
   if (error) throw error;
 
-  const rows = (data ?? [])
-    .map((r: any) => ({
+  const rows = (data ?? []).map((r: any) => {
+    const profile = Array.isArray(r.profile) ? r.profile[0] : r.profile;
+    return {
       user_id: r.user_id,
-      profile: r.profile,
-      xp_alltime: r.lb?.xp_alltime ?? 0,
-      xp_7d: r.lb?.xp_7d ?? 0,
-      xp_30d: r.lb?.xp_30d ?? 0,
-    }))
-    .sort((a, b) => (b as any)[key] - (a as any)[key])
-    .slice(0, limit);
+      xp_alltime: r.xp_alltime ?? 0,
+      xp_7d: r.xp_7d ?? 0,
+      xp_30d: r.xp_30d ?? 0,
+      profile,
+    } as LeaderRow;
+  });
 
-  return rows;
+  // Defensive: dedupe rows by user_id in case the leaderboards source returns
+  // multiple rows for the same user (can happen with certain views or joins).
+  const unique = new Map<string, LeaderRow>();
+  for (const r of rows) {
+    const existing = unique.get(r.user_id);
+    if (!existing) {
+      unique.set(r.user_id, r);
+    } else {
+      // Prefer the row with the larger all-time xp (most up-to-date aggregate)
+      if ((r.xp_alltime ?? 0) > (existing.xp_alltime ?? 0)) {
+        unique.set(r.user_id, r);
+      }
+    }
+  }
+
+  return Array.from(unique.values()).slice(0, limit);
 }
