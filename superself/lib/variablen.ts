@@ -1,0 +1,1 @@
+export const MAX_TIMER_MINUTES = 90;

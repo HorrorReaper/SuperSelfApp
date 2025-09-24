@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 import { WeeklyRetroModal } from "@/components/sichallenge/weekly-retro-modal";
 import { TinyHabitPrompt } from "@/components/sichallenge/tiny-habit-prompt";
@@ -289,7 +290,12 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-        <Badge variant="outline">Day {todayDay}/30</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">Day {todayDay}/30</Badge>
+          <Button size="sm" variant="ghost" onClick={() => setCheckinOpen(true)}>
+            Journal
+          </Button>
+        </div>
       </header>
 
   <StreakHero

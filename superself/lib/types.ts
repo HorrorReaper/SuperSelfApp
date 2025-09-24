@@ -50,6 +50,7 @@ export type MicroBrief = {
   title: string;
   tldr: string; // 1-sentence summary
   content: string; // short tips 60–120s text
+  longcontent?: string; // optional deep-dive
   controlquestion?: string; // prompt to reflect on
   actionLabel: string; // button label for the action
   action?: DailyActionConfig; // optional action to do today
@@ -280,4 +281,24 @@ export type PublicAchievement = {
   icon: string | null;
   points: number | null;
   unlocked_at: string | null;
+};
+
+// journal
+export type FieldType = "scale_1_5" | "boolean" | "short_text" | "long_text" | "select_one" | "select_many";
+
+export type JournalTemplate = {
+  id: number;
+  user_id: string;
+  name: string;
+};
+
+export type JournalField = {
+  id: number;
+  template_id: number;
+  label: string;
+  helper: string | null;
+  type: FieldType;
+  required: boolean;
+  order_index: number;
+  options: { items?: string[] } | null;
 };

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ChallengeNavBarConnected } from "@/components/sichallenge/newUI/challenge-nav-bar-connected";
 import { UserButton } from "@/components/user/user-button";
+import Chatbot from "@/components/chatbot/chatbot";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
         <ChallengeNavBarConnected title="SuperSelf" rightSlot={<UserButton />} />
         {children}
         <Toaster position="top-center" richColors closeButton />
+        <Chatbot />
       </body>
     </html>
   );

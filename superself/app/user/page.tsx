@@ -14,6 +14,7 @@ import { loadUserProfile, saveUserProfile, type UserProfile } from "@/lib/user";
 import { xpProgress } from "@/lib/gamification";
 import { Badge } from "@/components/ui/badge";
 import { fetchAchievementCatalog, fetchMyUnlocks, type Achievement } from "@/lib/achievements/achievements-client";
+import { JournalSettings } from "@/components/profile/journal-settings";
 
 function Icon({ name }: { name?: string | null }) {
   // minimal Lucide dynamic import substitute; you can wire a proper icon map
@@ -250,6 +251,7 @@ export default function UserPage() {
           )}
         </CardContent>
       </Card>
+      <JournalSettings />
     </div>
   );
 }

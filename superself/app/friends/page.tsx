@@ -415,11 +415,9 @@ import {
   fetchFriendActivities,
   fetchProfilesByIds,
   meId,
-  type Profile,
-  type Friendship,
-  type Activity,
 } from "@/lib/social";
 import Link from "next/link";
+import { Activity, Friendship, Profile } from "@/lib/types";
 
 function initials(name?: string | null) {
   return (name ?? "You")

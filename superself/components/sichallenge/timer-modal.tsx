@@ -21,6 +21,7 @@ import {
   toggleTodo,
   deleteTodo,
 } from "@/lib/timer";
+import { MAX_TIMER_MINUTES } from "@/lib/variablen";
 
 function formatMMSS(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60)
@@ -210,7 +211,7 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
               <div className="text-sm">{minutes} min</div>
             </div>
             <div className="pt-2">
-              <Slider value={[minutes]} min={5} max={60} step={5} onValueChange={handleMinutesChange} disabled={running} />
+              <Slider value={[minutes]} min={5} max={MAX_TIMER_MINUTES} step={5} onValueChange={handleMinutesChange} disabled={running} />
               <div className="flex items-center justify-between mt-2">
                 <div className="text-xs text-muted-foreground">Adjust in 5-min steps</div>
               </div>

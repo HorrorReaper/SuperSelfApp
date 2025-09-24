@@ -8,6 +8,7 @@ import { OVERALL_ACTIONS } from "@/lib/overall-actions";
 import { ensureDay } from "@/lib/compute";
 import { loadState, saveState } from "@/lib/local";
 import { CompleteDayButton } from "../shared/CompleteDayButton";
+import Link from "next/link";
 
 type Props = {
   day: number;
@@ -56,6 +57,10 @@ export function OverallDailyChallenge({ day, brief, canComplete, onMarkedDone }:
           <div className="text-sm font-medium mb-2">Control question</div>
           <div className="text-sm text-muted-foreground">{brief.controlquestion}</div>
         </div>
+        <Link href={`/hubs/learning?day=${day}`} className="text-sm text-primary underline">
+              Read more
+          </Link>
+
 
         {actionCfg ? (
           <>
@@ -66,13 +71,16 @@ export function OverallDailyChallenge({ day, brief, canComplete, onMarkedDone }:
         ) : null}
 
         {/* The button goes here, gated by canComplete */}
-          <CompleteDayButton
-            day={day}
-            enabled={true}
-            onChange={(completed) => {
-              if (completed) onMarkedDone();
-            }}
-          />
+          <div className="flex items-center gap-3">
+            <CompleteDayButton
+              day={day}
+              enabled={true}
+              onChange={(completed) => {
+                if (completed) onMarkedDone();
+              }}
+            />
+            
+          </div>
       </CardContent>
     </Card>
   );
