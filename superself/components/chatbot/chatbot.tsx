@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, X } from "lucide-react"
+import { getMockResponse } from "./mockApi"
 
 type Message = { id: number; text: string; from: "user" | "bot" }
 
@@ -14,23 +15,29 @@ export default function Chatbot() {
   ])
   const [input, setInput] = useState("")
   const listRef = useRef<HTMLDivElement | null>(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     // scroll to bottom when messages change
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
   }, [messages, open])
 
-  function send() {
+  async function send() {
     const txt = input.trim()
-    if (!txt) return
+    if (!txt || loading) return
     const mid = Date.now()
     setMessages((m) => [...m, { id: mid, text: txt, from: "user" }])
     setInput("")
+    setLoading(true)
 
-    // fake bot response
-    setTimeout(() => {
-      setMessages((m) => [...m, { id: mid + 1, text: `You said: ${txt}`, from: "bot" }])
-    }, 600)
+    try {
+      const reply = await getMockResponse(txt)
+      setMessages((m) => [...m, { id: mid + 1, text: reply, from: "bot" }])
+    } catch (e) {
+      setMessages((m) => [...m, { id: mid + 1, text: "(error) Could not get reply.", from: "bot" }])
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -44,10 +51,9 @@ export default function Chatbot() {
             <MessageSquare className="h-6 w-6" />
           </button>
         </DialogTrigger>
-        <DialogTitle>Chat</DialogTitle>
 
-  <DialogContent className="w-[min(90vw,420px)] p-0 overflow-hidden left-auto top-auto translate-x-0 translate-y-0 right-6 bottom-24">
-          <div className="flex h-96 w-full flex-col bg-background">
+        <DialogContent className="fixed left-0 right-0 bottom-0 z-50 w-full sm:left-auto sm:right-6 sm:bottom-24 sm:w-[min(420px,90vw)] p-0 overflow-hidden sm:rounded-lg">
+          <div className="flex h-[60vh] sm:h-96 w-full flex-col bg-background">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div className="flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-primary" />
@@ -59,7 +65,6 @@ export default function Chatbot() {
                   className="rounded-md p-1 hover:bg-accent"
                   aria-label="Close chat"
                 >
-
                 </button>
               </div>
             </div>
@@ -72,9 +77,15 @@ export default function Chatbot() {
                     m.from === "bot" ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground ml-auto"
                   }`}
                 >
-                  <div className="text-sm">{m.text}</div>
+                  <div className="text-sm whitespace-pre-line">{m.text}</div>
                 </div>
               ))}
+
+              {loading && (
+                <div className="max-w-[60%] rounded-lg px-3 py-2 bg-muted text-muted-foreground">
+                  <div className="text-sm">Typing…</div>
+                </div>
+              )}
             </div>
 
             <div className="border-t px-3 py-2">
@@ -85,11 +96,12 @@ export default function Chatbot() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send()
                   }}
-                  className="flex-1 rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="Type a message"
+                  disabled={loading}
+                  className="flex-1 rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                  placeholder={loading ? "Waiting for reply..." : "Type a message"}
                 />
-                <Button size="sm" onClick={send} className="self-end">
-                  Send
+                <Button size="sm" onClick={send} className="self-end" disabled={loading}>
+                  {loading ? "..." : "Send"}
                 </Button>
               </div>
             </div>
