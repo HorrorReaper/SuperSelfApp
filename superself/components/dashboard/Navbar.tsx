@@ -102,6 +102,9 @@ export function NavBar({
               <DropdownMenuItem asChild>
                 <Link href="/hubs/learning" className="w-full cursor-pointer">Learning hub</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/hubs/fitness" className="w-full cursor-pointer">Fitness hub</Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
@@ -159,6 +162,7 @@ export function NavBar({
           <Link href="/leaderboard" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Leaderboard</Link>
           <Link href="/hubs/productivity" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Productivity hub</Link>
           <Link href="/hubs/learning" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Learning hub</Link>
+          <Link href="/hubs/fitness" className="px-2 py-1 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70">Fitness hub</Link>
         </div>
       </div>
     </div>

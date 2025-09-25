@@ -302,3 +302,50 @@ export type JournalField = {
   order_index: number;
   options: { items?: string[] } | null;
 };
+
+
+//Fitnesshub
+export type WorkoutSession = {
+  id: number;
+  user_id: string;
+  date: string;
+  title: string | null;
+  notes: string | null;
+  started_at: string;
+  ended_at: string | null;
+  total_volume: number;
+};
+
+export type WorkoutSet = {
+  id: number;
+  session_id: number;
+  user_id: string;
+  exercise_id: number | null;
+  custom_exercise: string | null;
+  set_index: number;
+  weight: number | null;
+  reps: number | null;
+  rpe: number | null;
+  volume: number | null;
+  notes: string | null;
+};
+
+export type Exercise = {
+  id: number;
+  user_id: string;
+  name: string;
+  muscle_group: string | null;
+};
+
+export type Meal = {
+  id: number;
+  user_id: string;
+  date: string;
+  time: string | null;
+  name: string | null;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  notes: string | null;
+};
