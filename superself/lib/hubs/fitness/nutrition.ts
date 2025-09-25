@@ -52,4 +52,21 @@ export async function deleteMeal(id: number) {
   const { error } = await supabase.from("meals").delete().eq("id", id);
   if (error) throw error;
 }
+export async function getMacroTargets() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("macro_targets")
+    .eq("id", user.id)
+    .single();
+
+  return (data?.macro_targets ?? null) as {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  } | null;
+}
 

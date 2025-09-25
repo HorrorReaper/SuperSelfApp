@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { addMeal, listMeals, totals} from "@/lib/hubs/fitness/nutrition";
+import { addMeal, getMacroTargets, listMeals, totals} from "@/lib/hubs/fitness/nutrition";
 import { Progress } from "@/components/ui/progress";
 import { Meal } from "@/lib/types";
 
@@ -16,9 +16,25 @@ export function NutritionTracker() {
   const [p, setP] = useState<string>("");
   const [c, setC] = useState<string>("");
   const [f, setF] = useState<string>("");
+  const [target, setTarget] = useState({ calories: 2000, protein_g: 150, carbs_g: 250, fat_g: 70 });
 
   // Targets (client-configurable later; simple defaults)
-  const target = { calories: 2200, protein_g: 150, carbs_g: 220, fat_g: 70 };
+  useEffect(() => {
+    const fetchTargets = async () => {
+      const macroTargets = await getMacroTargets();
+      // normalize possible shapes from the server: some profiles use
+      // { protein, carbs, fat } while our UI expects { protein_g, carbs_g, fat_g }
+      const m = macroTargets as any;
+      const normalized = {
+        calories: m?.calories ?? 2000,
+        protein_g: m?.protein_g ?? m?.protein ?? 150,
+        carbs_g: m?.carbs_g ?? m?.carbs ?? 250,
+        fat_g: m?.fat_g ?? m?.fat ?? 70,
+      };
+      setTarget(normalized);
+    };
+    fetchTargets();
+  }, []);
 
   async function refresh() {
     try { setMeals(await listMeals()); } catch {}
