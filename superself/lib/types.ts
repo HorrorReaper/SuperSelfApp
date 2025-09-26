@@ -352,6 +352,29 @@ export type Exercise = {
   name: string;
   muscle_group: string | null;
 };
+export type ExerciseCatalogItem = {
+  id: string;
+  slug: string;
+  name: string;
+  muscle_groups: string[];
+  equipment: string[];
+  difficulty: "beginner" | "intermediate" | "advanced";
+  image_url?: string | null;
+  video_url?: string | null;
+  description?: string | null;
+  cues: string[];
+  tags: string[];
+};
+
+export type UserExercise = {
+  id: string;
+  user_id: string;
+  catalog_id?: string | null;
+  name: string;
+  notes?: string | null;
+  image_url?: string | null;
+  aliases?: string[] | null;
+};
 
 export type Meal = {
   id: number;

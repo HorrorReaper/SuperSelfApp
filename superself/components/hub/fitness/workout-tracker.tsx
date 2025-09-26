@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { toast } from "sonner";
 import { addExercise, listExercises, startSession, finishSession, addSet, listSessions, listSets} from "@/lib/hubs/fitness/workout";
 import { Exercise, WorkoutSession, WorkoutSet } from "@/lib/types";
+import { ExerciseSelectDialog } from "./exercise-select-dialog";
 
 export function WorkoutTracker() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -46,6 +47,14 @@ export function WorkoutTracker() {
       toast.error("Could not add exercise", { description: e?.message });
     }
   }
+  function handlePickExercise(ex: Exercise) {
+  // ensure it's in local state (in case it was newly added from catalog)
+  if (!exercises.find((e) => e.id === ex.id)) {
+    setExercises((prev) => [...prev, ex]);
+  }
+  setSelectedExerciseId(String(ex.id));
+  setCustomExercise("");
+}
 
   async function addOneSet() {
     if (!session) { toast.error("Start a session first"); return; }
@@ -108,10 +117,10 @@ export function WorkoutTracker() {
                         {ex.name}
                       </SelectItem>
                     ))}
-                    {/* Use a non-empty sentinel value for the custom option */}
                     <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
+                <ExerciseSelectDialog exercises={exercises} onPick={handlePickExercise} />
                 {selectedExerciseId === "custom" ? (
                   <Input
                     className="w-[220px]"
