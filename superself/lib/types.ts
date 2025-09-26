@@ -330,6 +330,22 @@ export type WorkoutSet = {
   notes: string | null;
 };
 
+export type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active";
+export type Goal = "lose" | "maintain" | "gain";
+export type Sex = "male" | "female" | "other";
+
+export type SetupInput = {
+  heightCm: number;
+  weightKg: number;
+  ageYears: number;
+  sex: Sex;
+  activityLevel: ActivityLevel;
+  goal: Goal;
+  proteinPerKg?: number; // default 1.8
+  fatPerKg?: number;     // default 0.8
+};
+
+
 export type Exercise = {
   id: number;
   user_id: string;

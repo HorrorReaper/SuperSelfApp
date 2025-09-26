@@ -13,8 +13,8 @@ export default function JourneyCard() {
       <Journey
         title="Fitness"
         description="Get in shape with our personalized fitness plans and track your progress."
-        continueHref="/journeys/fitness-journey"
-        exploreHref="/journeys/fitness-journey/journey-intro"
+        continueHref="/hubs/fitness"
+        exploreHref="/hubs/fitness/intro"
       />
       
     </div>
