@@ -42,11 +42,50 @@ export default function DashboardPage() {
         loadDashboardData();
     }, []);
 
+        // Debug helper: detect elements that overflow the viewport width and outline them.
+        // This runs only in the browser and helps find the element causing horizontal scroll.
+        useEffect(() => {
+            function findOverflows() {
+                try {
+                    const vw = window.innerWidth || document.documentElement.clientWidth;
+                    const els = Array.from(document.querySelectorAll('body *')) as HTMLElement[];
+                    const offenders: HTMLElement[] = [];
+                    els.forEach((el) => {
+                        // skip script/style/meta elements
+                        if (!el.offsetParent && getComputedStyle(el).position !== 'fixed') return;
+                        const rect = el.getBoundingClientRect();
+                        // consider elements that are wider than viewport by more than 1px
+                        if (rect.width > vw + 1) {
+                            offenders.push(el);
+                            el.style.outline = '3px solid rgba(220,38,38,0.9)';
+                            el.style.transition = 'outline 200ms ease-in-out';
+                        }
+                    });
+                    if (offenders.length) {
+                        console.warn('Found DOM elements wider than viewport:', offenders);
+                        offenders.slice(0,10).forEach((el) => console.warn(el, el.className, el.getBoundingClientRect()));
+                    } else {
+                        console.info('No overflowing elements detected by diagnostics');
+                    }
+                } catch (e) {
+                    // ignore diagnostics errors
+                    console.error('Overflow diagnostic failed', e);
+                }
+            }
+
+            // run on mount and on resize
+            findOverflows();
+            window.addEventListener('resize', findOverflows);
+            return () => window.removeEventListener('resize', findOverflows);
+        }, []);
+
     return (
-        <div className="max-w-2xl mx-auto mt-10">
+        <div className="max-w-4xl mx-auto mt-6 px-4 sm:px-6 overflow-x-hidden">
             <AchievementUnlockToaster />
-            <h1 className="text-2xl font-bold">Welcome back 💪</h1>
-            <h2 className="text-lg mt-4 font-bold">Your Learning Journey</h2>
+            <header className="mb-4">
+                <h1 className="text-xl sm:text-2xl font-bold">Welcome back 💪</h1>
+                <h2 className="text-sm sm:text-lg mt-2 font-semibold text-muted-foreground">Your Learning Journey</h2>
+            </header>
 
             {loading && (
                 <div className="mt-4 text-center text-gray-500">
@@ -55,16 +94,24 @@ export default function DashboardPage() {
             )}
 
             {error && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                     Error: {error}
                 </div>
             )}
 
-            {!loading && !error && enrichedModules.map((module) => (
-                <ModuleCard key={module.id} module={module} />
-            ))}
-            {/* Beautiful Journey Card */}
-            <JourneyCard />
+            {!loading && !error && (
+                <div className="mt-4 space-y-6 w-full">
+                    <div className="space-y-4">
+                        {enrichedModules.map((module) => (
+                            <ModuleCard key={module.id} module={module} />
+                        ))}
+                    </div>
+
+                    <div>
+                        <JourneyCard />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

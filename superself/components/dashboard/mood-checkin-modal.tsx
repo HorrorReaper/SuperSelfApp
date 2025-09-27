@@ -159,7 +159,7 @@ export function MoodCheckinModal({ open, onOpenChange, onSubmit, defaultMood = n
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <DialogContent className="w-[min(92vw,720px)] sm:max-w-md p-4">
         <DialogHeader>
           <DialogTitle>How are you feeling today?</DialogTitle>
           <DialogDescription>Select one. You can add a short journal if you want.</DialogDescription>
@@ -189,8 +189,8 @@ export function MoodCheckinModal({ open, onOpenChange, onSubmit, defaultMood = n
             })}
           </div>
 
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Not now
             </Button>
             {!showJournal ? (
@@ -200,6 +200,7 @@ export function MoodCheckinModal({ open, onOpenChange, onSubmit, defaultMood = n
                   disabled={!mood}
                   onClick={handleSubmitMoodOnly}
                   title="Submit just your mood"
+                  className="w-full sm:w-auto"
                 >
                   Submit mood
                 </Button>
@@ -207,12 +208,13 @@ export function MoodCheckinModal({ open, onOpenChange, onSubmit, defaultMood = n
                   disabled={!mood}
                   onClick={() => setShowJournal(true)}
                   title="Add a short journal"
+                  className="w-full sm:w-auto"
                 >
                   Journal
                 </Button>
               </>
             ) : (
-              <Button disabled={!mood} onClick={handleSubmitWithJournal}>
+              <Button disabled={!mood} onClick={handleSubmitWithJournal} className="w-full sm:w-auto">
                 Submit mood + journal
               </Button>
             )}

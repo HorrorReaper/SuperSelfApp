@@ -26,18 +26,21 @@ export default function ModuleCard({ module }: ModuleCardProps) {
         }
     };
     return (
-        <div className="border rounded-xl p-4 space-y-2 mt-4">
-            <h2 className="text-xl font-semibold">{module.title}</h2>
+        <div className="border rounded-xl p-3 sm:p-4 space-y-2 mt-4 min-w-0">
+            <h2 className="text-lg sm:text-xl font-semibold">{module.title}</h2>
             <p className="text-sm text-muted-foreground">{module.description}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {module.module_lessons.map((moduleLesson) => (
                     <div
                         key={moduleLesson.lesson_id}
                         onClick={() => handleLessonClick(moduleLesson.lessons.id, moduleLesson.lessons.status || 'locked')}
-                        className="p-3 rounded-lg bg-muted hover:bg-muted/70 transition cursor-pointer"
+                        className="p-3 sm:p-4 rounded-lg bg-muted hover:bg-muted/70 transition cursor-pointer min-w-0 overflow-hidden"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleLessonClick(moduleLesson.lessons.id, moduleLesson.lessons.status || 'locked'); }}
                     >
-                        <h3 className="text-lg font-bold">{moduleLesson.lessons.title}</h3>
-                        <p className="text-sm font-light">{moduleLesson.lessons.description}</p>
+                        <h3 className="text-base sm:text-lg font-bold">{moduleLesson.lessons.title}</h3>
+                        <p className="text-sm font-light line-clamp-2">{moduleLesson.lessons.description}</p>
                         <p className={`text-xs mt-1 ${
   moduleLesson.lessons.status === 'completed' ? 'text-green-600' :
   moduleLesson.lessons.status === 'in_progress' ? 'text-yellow-600' :

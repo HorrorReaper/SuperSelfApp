@@ -111,7 +111,7 @@ export default function DashboardPage() {
 
   if (!intake || !state || !derived) {
     return (
-      <div className="max-w-screen-sm mx-auto p-4">
+      <div className="max-w-screen-sm mx-auto px-4 py-6">
         <h1 className="text-xl font-semibold">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-2">Loading…</p>
       </div>
@@ -271,15 +271,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-screen-sm mx-auto p-4 space-y-4">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">30‑Day Challenge</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm text-muted-foreground">
+    <div className="max-w-screen-sm mx-auto px-4 py-6 space-y-4">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-semibold truncate">30‑Day Challenge</h1>
+          <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground mt-1">
+            <p className="truncate">
               Started {format(new Date(state.startDateISO + "T00:00:00"), "MMM d")} · Goal:
             </p>
-            <Badge variant="secondary" className="align-middle">
+            <Badge variant="secondary" className="align-middle truncate max-w-xs">
               {intake.goal}
             </Badge>
             {!isOverall && (
@@ -290,9 +290,9 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">Day {todayDay}/30</Badge>
-          <Button size="sm" variant="ghost" onClick={() => setCheckinOpen(true)}>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Badge variant="outline" className="flex-shrink-0">Day {todayDay}/30</Badge>
+          <Button size="sm" variant="ghost" onClick={() => setCheckinOpen(true)} className="w-full sm:w-auto">
             Journal
           </Button>
         </div>
@@ -307,19 +307,21 @@ export default function DashboardPage() {
       />
 
       {/*<DayScroller currentDay={todayDay} onPick={(d) => handlePickDay(d)} />*/}
-<DayScroller
-        totalDays={totalDays}
-        todayDay={todayDay}
-        selectedDay={selectedDay}
-        completedDays={completedDays}
-        onPick={(day) => {
-          setSelectedDay(day);
-          // NEW (optional UX): open preview when a day is picked
-          const b = getBriefForDay(day, isOverall ? "overall improvement" : "focus");
-          setPreviewBrief(b);
-          setPreviewOpen(true);
-        }}
-      />
+      <div className="w-full">
+        <DayScroller
+          totalDays={totalDays}
+          todayDay={todayDay}
+          selectedDay={selectedDay}
+          completedDays={completedDays}
+          onPick={(day) => {
+            setSelectedDay(day);
+            // NEW (optional UX): open preview when a day is picked
+            const b = getBriefForDay(day, isOverall ? "overall improvement" : "focus");
+            setPreviewBrief(b);
+            setPreviewOpen(true);
+          }}
+        />
+      </div>
 
       {/*<DayPreviewSheet
         open={previewOpen}
@@ -345,36 +347,44 @@ export default function DashboardPage() {
       {/* Brief + Action */}
       {isOverall ? (
         activeBrief && (
-          <OverallDailyChallenge
-            day={todayDay}
-            brief={activeBrief}
-            canComplete={canComplete}
-            //onMarkedDone={markDone}
-            onMarkedDone={() => setCanComplete(true)}
-          />)
+          <div className="w-full">
+            <OverallDailyChallenge
+              day={todayDay}
+              brief={activeBrief}
+              canComplete={canComplete}
+              //onMarkedDone={markDone}
+              onMarkedDone={() => setCanComplete(true)}
+            />
+          </div>
+        )
       ) : (
         activeBrief && (
-          <MicroBriefCard
-            title={activeBrief.title}
-            tldr={activeBrief.tldr}
-            content={activeBrief.content}
-            actionLabel={activeBrief.actionLabel}
-            onAction={handleStartTimer}
-            onSkip={handleStartTimer}
-          />)
+          <div className="w-full">
+            <MicroBriefCard
+              title={activeBrief.title}
+              tldr={activeBrief.tldr}
+              content={activeBrief.content}
+              actionLabel={activeBrief.actionLabel}
+              onAction={handleStartTimer}
+              onSkip={handleStartTimer}
+            />
+          </div>
+        )
       )}
 
       {/* Focus habit OR mark complete */}
       {!isOverall ? (
-        <ChallengeTodayCard
-          title={titleMap[intake.keystoneHabit]}
-          description={descMap[intake.keystoneHabit]}
-          targetMinutes={targetMinutes}
-          completed={!!dayRec.completed}
-          onStart={handleStartTimer}
-          onComplete={markDone}
-          canComplete={canComplete || !!dayRec.completed}
-        />
+        <div className="w-full">
+          <ChallengeTodayCard
+            title={titleMap[intake.keystoneHabit]}
+            description={descMap[intake.keystoneHabit]}
+            targetMinutes={targetMinutes}
+            completed={!!dayRec.completed}
+            onStart={handleStartTimer}
+            onComplete={markDone}
+            canComplete={canComplete || !!dayRec.completed}
+          />
+        </div>
       ) : null}
 
       {tiny ? (
@@ -386,7 +396,7 @@ export default function DashboardPage() {
       <TinyHabitPrompt open={promptOpen} onOpenChange={setPromptOpen} onSelect={handleTinySelect} onSkip={handleTinySkip} />
 
       {!isOverall && (
-        <>
+        <div className="space-y-3 w-full">
           <TimerModal
             open={timerOpen}
             onOpenChange={handleTimerOpenChange}
@@ -396,7 +406,7 @@ export default function DashboardPage() {
           />
           <MinutesSparklineCard data={last7} />
           <MiniTimerWidget onOpenTimer={() => setTimerOpen(true)} />
-        </>
+        </div>
       )}
 
       <WeeklyRetroModal
