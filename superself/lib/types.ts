@@ -235,6 +235,31 @@ export type Note = {
 export type WidgetId = "calendar" | "tasks" | "notepad" | "timer";
 export type WidgetItem = { id: WidgetId; visible: boolean };
 
+// lib/nextday/types.ts
+export type PlanBlockKind = "focus" | "meeting" | "break" | "mobility" | "workout" | "other";
+
+export type PlanBlock = {
+  start: string; // "HH:MM"
+  end: string;   // "HH:MM"
+  title: string;
+  kind: PlanBlockKind;
+};
+
+export type ChecklistItem = { label: string; done: boolean };
+
+export type DayPlan = {
+  id: string;
+  user_id: string;
+  plan_date: string; // ISO date
+  frog_task_id?: number | null;
+  essential_task_ids: number[];
+  blocks: PlanBlock[];
+  checklist: ChecklistItem[];
+  notes?: string | null;
+  status: "planned" | "in_progress" | "completed";
+};
+
+
 //learning hub
 export type Deck = {
   id: number;

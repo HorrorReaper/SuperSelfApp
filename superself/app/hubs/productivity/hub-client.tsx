@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -24,6 +25,7 @@ const WIDGET_REGISTRY: Record<WidgetId, { label: string; render: () => React.Rea
 };
 
 export function ProductivityHubClient() {
+  const router = useRouter();
   const [customize, setCustomize] = useState(false);
   const [items, setItems] = useState<WidgetItem[]>([]);
   const [mounted, setMounted] = useState(false);
@@ -86,6 +88,18 @@ export function ProductivityHubClient() {
   // In view mode we render visible widgets in the chosen order.
   return (
     <div className="space-y-4">
+      {/* Quick action: Plan next day */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Plan for tomorrow</h2>
+            <p className="text-sm text-muted-foreground">Create a quick plan for your next day to stay productive.</p>
+          </div>
+          <div className="ml-4">
+            <Button onClick={() => router.push('/hubs/productivity/plan-next-day')} className="whitespace-nowrap">Plan next day</Button>
+          </div>
+        </div>
+      </Card>
       <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold">Productivity Hub</h1>
         <div className="ml-auto flex items-center gap-2">

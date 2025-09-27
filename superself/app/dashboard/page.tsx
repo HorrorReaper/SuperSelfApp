@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { fetchModulesWithProgress, Module } from "@/lib/dashboard";
 import ModuleCard from "@/components/dashboard/ModuleCard";
 import JourneyCard from "@/components/dashboard/JourneyCard";
-import { Button } from "@/components/ui/button";
 import { AchievementUnlockToaster } from "@/components/achievements/unlock-toaster";
 
 export default function DashboardPage() {
