@@ -207,6 +207,7 @@ export function NavBar({
                 >
                   <div className="bg-background/90 backdrop-blur border rounded-xl p-2 shadow-lg">
                     <div className="grid grid-cols-3 gap-2">
+                      <button onClick={() => { setMobileOpen(false); if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('openMoodCheckin')); }} className="px-2 py-2 text-center rounded-md text-sm text-muted-foreground hover:bg-muted/70">Journal</button>
                       {links.map((l) => (
                         <Link key={l.href} href={l.href} onClick={() => setMobileOpen(false)} className="px-2 py-2 text-center rounded-md text-sm text-muted-foreground hover:bg-muted/70">{l.label}</Link>
                       ))}

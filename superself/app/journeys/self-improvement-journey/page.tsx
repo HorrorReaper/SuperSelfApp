@@ -96,6 +96,19 @@ export default function DashboardPage() {
     }
   }, [state?.todayDay]);
 
+  // Listen for a custom event (from Navbar mobile menu) to open the MoodCheckin modal
+  useEffect(() => {
+    function onOpenMood() { setCheckinOpen(true); }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('openMoodCheckin', onOpenMood as EventListener);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('openMoodCheckin', onOpenMood as EventListener);
+      }
+    };
+  }, []);
+
   const derived = useMemo(() => {
     if (!state) return null;
     const todayDay = state.todayDay;
