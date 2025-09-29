@@ -336,13 +336,6 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/*<DayPreviewSheet
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        brief={previewBrief}
-        canJump={false}
-        onJumpToDay={jumpToDay}
-      />*/}
       <DayPreviewSheet
         open={previewOpen}
         onOpenChange={setPreviewOpen}
