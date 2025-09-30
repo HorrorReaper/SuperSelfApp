@@ -99,6 +99,41 @@ export function CompleteDayButton({
         xp: award.gained,
         message: null,
       }).catch(() => {});
+      // 4b) Mirror the per-day completion to the server challenge_days table
+      try {
+        const dateIso = new Date().toISOString().slice(0, 10);
+        await supabase.from("challenge_days").upsert({
+          user_id: uid,
+          day_number: day,
+          date_iso: dateIso,
+          completed: true,
+          credited_to_streak: policy?.countsForStreak ?? true,
+          habit_minutes: 0,
+          completed_at: new Date().toISOString(),
+        }, { onConflict: "user_id,day_number" });
+
+        // Fetch authoritative streak from server RPC and optionally update local state
+        const { data: streak, error: streakErr } = await supabase.rpc("get_my_streak");
+        if (!streakErr && typeof streak === "number") {
+          // best-effort: update local persisted state so UI matches server
+          try {
+            const s = loadState<ChallengeState>();
+            if (s) {
+              s.streak = streak as number;
+              // reflect in saved state and notify
+              // reuse existing saveState which triggers mirrorProfileFromState
+              // import saveState lazily to avoid circular issues
+              const { saveState } = await import("@/lib/local");
+              saveState(s);
+            }
+          } catch (e) {
+            // ignore local update errors
+          }
+        }
+      } catch (err) {
+        // ignore best-effort mirror errors
+        console.error("Failed to mirror challenge_day to server", err);
+      }
     }
 
     // 5) Update local UI state
