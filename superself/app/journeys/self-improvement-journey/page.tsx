@@ -27,6 +27,7 @@ import { getProgress } from "@/lib/timer";
 
 import { loadIntake, loadState, saveState, completeTinyHabit, setTinyHabit } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
+import { supabase } from "@/lib/supabase";
 
 import type { ChallengeState, Intake, MicroBrief } from "@/lib/types";
 
@@ -122,6 +123,81 @@ export default function DashboardPage() {
      [state?.days]
    );
 
+  // Server-backed days (fetched from Supabase). If available, DayScroller will prefer this list.
+  const [serverCompletedDays, setServerCompletedDays] = useState<number[] | null>(null);
+  useEffect(() => {
+    // Fetch challenge_days for the current user and merge into local state
+    let mounted = true;
+    (async () => {
+      try {
+        const { data: rows, error } = await supabase
+          .from("challenge_days")
+          .select(
+            "day_number,completed,credited_to_streak,habit_minutes,sessions,completed_at,date_iso"
+          )
+          .order("day_number", { ascending: true });
+        if (error) {
+          console.debug("Supabase fetch challenge_days failed:", error.message);
+          return;
+        }
+        if (!mounted || !rows) return;
+
+        const completed = (rows as any[])
+          .filter((r) => r.completed)
+          .map((r) => r.day_number as number);
+        setServerCompletedDays(completed);
+
+        // Merge server rows into local ChallengeState so derived values use server-backed data
+        try {
+          const local = loadState<ChallengeState>() ?? initChallengeState();
+          // ensure days array exists
+          local.days = local.days ?? [];
+
+          for (const r of rows as any[]) {
+            const dayNum: number = Number(r.day_number);
+            if (!Number.isFinite(dayNum)) continue;
+            const existing = local.days.find((d) => d.day === dayNum);
+            const dateISO = r.date_iso ? String(r.date_iso) : existing?.dateISO ?? new Date().toISOString().slice(0, 10);
+            const sessions = Array.isArray(r.sessions) ? (r.sessions as any[]) : [];
+            const completedAtISO = r.completed_at ? new Date(r.completed_at).toISOString() : undefined;
+            const credited = typeof r.credited_to_streak === "boolean" ? r.credited_to_streak : existing?.creditedToStreak ?? true;
+
+            if (existing) {
+              // Merge server values, prefer server when present
+              existing.completed = !!r.completed;
+              existing.creditedToStreak = credited;
+              existing.habitMinutes = (r.habit_minutes ?? existing.habitMinutes) as number | undefined;
+              existing.sessions = sessions.length ? sessions : existing.sessions;
+              if (completedAtISO) existing.completedAtISO = completedAtISO;
+              existing.dateISO = existing.dateISO ?? dateISO;
+            } else {
+              local.days.push({
+                day: dayNum,
+                completed: !!r.completed,
+                habitMinutes: r.habit_minutes ?? 0,
+                sessions: sessions ?? [],
+                dateISO,
+                completedAtISO,
+                creditedToStreak: credited,
+              });
+            }
+          }
+
+          // Recompute streak using the merged days and persist
+          local.streak = computeStreak(local.days);
+          // Persist merged state and update UI
+          saveState(local);
+          if (mounted) setState(local);
+        } catch (e) {
+          console.debug("Failed to merge server challenge_days into local state", e);
+        }
+      } catch (e) {
+        console.debug("Failed to fetch challenge_days", e);
+      }
+    })();
+    return () => { mounted = false };
+  }, []);
+
   if (!intake || !state || !derived) {
     return (
       <div className="max-w-screen-sm mx-auto px-4 py-6">
@@ -185,6 +261,29 @@ export default function DashboardPage() {
     next.streak = computeStreak(next.days);
     setState(next);
     saveState(next);
+    // Try to persist to Supabase as well (upsert challenge_days row)
+    (async () => {
+      try {
+        const payload = {
+          day_number: todayDay,
+          date_iso: new Date().toISOString().slice(0, 10),
+          completed: true,
+          credited_to_streak: true,
+          habit_minutes: rec.habitMinutes || 0,
+        };
+        // Use upsert on unique (user_id, day_number) - server-side policy should set user_id from auth
+  const { error } = await supabase.from("challenge_days").upsert([payload], { onConflict: "day_number" });
+        if (error) console.debug("Failed to upsert challenge_day", error.message);
+        // Refresh server list
+        const { data: rows } = await supabase.from("challenge_days").select("day_number,completed").order("day_number", { ascending: true });
+        if (rows) {
+          const completed = (rows as any[]).filter((r) => r.completed).map((r) => r.day_number as number);
+          setServerCompletedDays(completed);
+        }
+      } catch (e) {
+        console.debug("Supabase save failed", e);
+      }
+    })();
     const { gained, levelUp, newLevel } = awardForDayCompletion(todayDay);
     if (gained > 0) {
       toast.success(`+${gained} XP`, { description: `Day ${todayDay} completed` });
@@ -284,7 +383,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-screen-sm mx-auto px-4 py-6 space-y-4">
+    <div className="max-w-screen-sm mx-auto px-4 py-6 space-y-4 overflow-x-hidden">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-semibold truncate">30‑Day Challenge</h1>
@@ -325,7 +424,7 @@ export default function DashboardPage() {
           totalDays={totalDays}
           todayDay={todayDay}
           selectedDay={selectedDay}
-          completedDays={completedDays}
+          completedDays={serverCompletedDays ?? completedDays}
           onPick={(day) => {
             setSelectedDay(day);
             // NEW (optional UX): open preview when a day is picked
