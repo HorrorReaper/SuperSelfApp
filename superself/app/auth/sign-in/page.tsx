@@ -3,83 +3,37 @@
 import { useState } from "react";
 
 import { signIn } from "@/lib/auth";
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { LoginForm } from "@/components/login-form";
 
-export default function SignUpPage(){
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+export default function SignInPage() {
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = async() => {
-        // Handle sign up logic here
-        const { data, error } = await signIn(email, password);
-        if (error) {
-            setError(error.message);
-        }else{
-            window.location.href = "/dashboard"; // Redirect to home page on success
-        }
-    };
+  const handleSubmit = async (email: string, password: string) => {
+    setError("");
+    setIsLoading(true);
+    try {
+      const { data, error } = await signIn(email, password);
+      if (error) {
+        setError(error.message);
+      } else {
+        // Redirect on success
+        window.location.href = "/dashboard";
+      }
+    } catch (e: any) {
+      setError(e?.message || "An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return (
-        
-        <Card className="w-full max-w-sm justify-center mx-auto mt-10">
-      <CardHeader>
-        <CardTitle>Login to your account</CardTitle>
-        <CardDescription>
-          Enter your email below to create your account
-        </CardDescription>
-        <CardAction>
-          <a href="/auth/sign-up"><Button variant="link">Sign Up</Button></a>
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <form>
-          <div className="flex flex-col gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="m@example.com"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <a
-                  href="#"
-                  className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                >
-                  Forgot your password?
-                </a>
-              </div>
-              <Input id="password" type="password" onChange={(e) => setPassword(e.target.value)}required />
-            </div>
-          </div>
-        </form>
-      </CardContent>
-      <CardFooter className="flex-col gap-2">
-        <Button type="submit" onClick={handleSubmit} className="w-full">
-          SignUp
-        </Button>
-        <Button variant="outline" className="w-full">
-          Sign Up with Google
-        </Button>
-      </CardFooter>
-      {error && <p className="text-red-500">{error}</p>}
-    </Card>
-    );
+  return (
+    <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm md:max-w-3xl">
+      
+
+        <LoginForm onLogin={handleSubmit} error={error} isLoading={isLoading} className="mt-6" />
+      </div>
+    </div>
+  );
 }
