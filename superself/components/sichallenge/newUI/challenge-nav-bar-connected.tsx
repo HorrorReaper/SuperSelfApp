@@ -6,7 +6,7 @@ import { loadState } from "@/lib/local";
 import type { ChallengeState } from "@/lib/types";
 import { xpProgress } from "@/lib/gamification";
 import { NavBar } from "@/components/dashboard/Navbar";
-import { createSupabaseClient, supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export function ChallengeNavBarConnected({
   title,
@@ -39,22 +39,18 @@ export function ChallengeNavBarConnected({
     // or the fetch fails, fall back to local state.
     const fetchFromServer = async () => {
       try {
-        console.log("Fetching authoritative XP from Supabase");
         const { data: userRes, error: userErr } = await supabase.auth.getUser();
         if (userErr || !userRes?.user) {
           // not signed in -> fall back to local state
-          console.log("Not signed in, falling back to local state");
           updateFromLocal();
           return;
         }
         const userId = userRes.user.id;
         const { data, error } = await supabase.from("leaderboards").select("xp_alltime").eq("user_id", userId).single();
         if (error || !data) {
-          console.log("Error fetching profile or no data, falling back to local state", error);
           updateFromLocal();
           return;
         }
-        console.log("Fetched profile data:", data);
         const xp = data.xp_alltime ?? 0;
         const p = xpProgress(xp);
         setData({ level: p.level, xpInLevel: p.inLevel, xpNeeded: p.needed, xpPct: p.pct });
@@ -63,14 +59,14 @@ export function ChallengeNavBarConnected({
       }
     };
 
+    // Initial authoritative fetch
     fetchFromServer();
-    // Listen to our custom event for same-tab updates
-    window.addEventListener("challenge:state-updated", updateFromLocal);
-    // Also listen to storage for cross-tab updates
-    window.addEventListener("storage", updateFromLocal);
+    // Re-fetch authoritative server XP when the app updates local state or storage changes.
+    window.addEventListener("challenge:state-updated", fetchFromServer);
+    window.addEventListener("storage", fetchFromServer);
     return () => {
-      window.removeEventListener("challenge:state-updated", updateFromLocal);
-      window.removeEventListener("storage", updateFromLocal);
+      window.removeEventListener("challenge:state-updated", fetchFromServer);
+      window.removeEventListener("storage", fetchFromServer);
     };
   }, []);
 

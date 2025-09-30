@@ -62,24 +62,6 @@ export default function DashboardPage() {
   const totalDays = 30;
   
   const [selectedDay, setSelectedDay] = useState(1);
-  useEffect(() => {
-    const i = loadIntake<Intake>();
-    setIntake(i);
-    let s = loadState<ChallengeState>();
-    if (!s) {
-      s = initChallengeState();
-      saveState(s);
-    }
-    const todayDay = computeTodayDay(s.startDateISO);
-    s.todayDay = todayDay;
-    saveState(s);
-    setState(s);
-    setSelectedDay(todayDay);
-
-    if (todayDay === 8 && (!s.tinyHabit || !s.tinyHabit.active)) {
-      setPromptOpen(true);
-    }
-  }, []);
 
   useEffect(() => {
     if (state?.todayDay && state.todayDay % 7 === 0) {
@@ -129,6 +111,9 @@ export default function DashboardPage() {
     // Fetch challenge_days for the current user and merge into local state
     let mounted = true;
     (async () => {
+      // Load intake early so we don't stay stuck on the loading screen
+      const i = loadIntake<Intake>();
+      if (mounted) setIntake(i);
       try {
         const { data: rows, error } = await supabase
           .from("challenge_days")
@@ -183,8 +168,36 @@ export default function DashboardPage() {
             }
           }
 
-          // Recompute streak using the merged days and persist
+          // Recompute streak using the merged days
           local.streak = computeStreak(local.days);
+
+          // Best-effort: fetch authoritative XP from server so we don't overwrite it
+          try {
+            const { data: userRes } = await supabase.auth.getUser();
+            const userId = userRes?.user?.id;
+            if (userId) {
+              const { data: lb, error: lbErr } = await supabase
+                .from("leaderboards")
+                .select("xp_alltime")
+                .eq("user_id", userId)
+                .single();
+              if (!lbErr && lb) {
+                const serverXp = Number(lb.xp_alltime ?? 0);
+                local.xp = serverXp;
+                try {
+                  const p = xpProgress(local.xp ?? 0);
+                  local.level = p.level;
+                } catch (e) {
+                  // ignore fetch errors
+                  console.debug("Failed to fetch authoritative XP", e);
+                }
+              }
+            }
+          } catch (e) {
+            // ignore fetch errors
+            console.debug("Failed to fetch authoritative XP from server", e);
+          }
+
           // Persist merged state and update UI
           saveState(local);
           if (mounted) setState(local);
