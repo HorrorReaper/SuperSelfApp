@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ export default function DashboardPage() {
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewBrief, setPreviewBrief] = useState<MicroBrief | null>(null);
+  const [rightDay, setRightDay] = useState<string>("");
 
   // Normalize overall key; prefer a machine key without spaces
   const goalKey = String(intake?.goal ?? "");
@@ -73,6 +74,7 @@ export default function DashboardPage() {
     }
     if (!state) return;
     const todayDay = state.todayDay;
+    
     // Auto-open if not checked in yet
     if (!hasCheckinFor(todayDay)) {
       setTimeout(() => setCheckinOpen(true), 400); // slight delay for nicer UX
@@ -175,6 +177,19 @@ export default function DashboardPage() {
           try {
             const { data: userRes } = await supabase.auth.getUser();
             const userId = userRes?.user?.id;
+            const rightday = await supabase
+              .from("user_journey")
+              .select("created_at")
+              .eq("user_id", userId)
+              .eq("journey", "30 Day Self Improvement Challenge")
+              .single();
+            console.log("rightday", rightday.data?.created_at);
+            const rightDateISO = rightday.data?.created_at ? rightday.data?.created_at.slice(0,10) : undefined;
+            if (rightDateISO) {
+              setRightDay(rightDateISO);
+              // Use rightDateISO as authoritative startDate for this challenge
+              local.startDateISO = rightDateISO;
+            }
             if (userId) {
               const { data: lb, error: lbErr } = await supabase
                 .from("leaderboards")
@@ -198,9 +213,25 @@ export default function DashboardPage() {
             console.debug("Failed to fetch authoritative XP from server", e);
           }
 
-          // Persist merged state and update UI
-          saveState(local);
-          if (mounted) setState(local);
+          // After merging server rows and (optionally) using rightDay as startDate,
+          // compute today's day and persist the merged state so derived values use it.
+          try {
+            const todayDay = computeTodayDay(local.startDateISO);
+            local.todayDay = todayDay;
+            // Persist merged state and update UI
+            saveState(local);
+            if (mounted) {
+              setState(local);
+              setSelectedDay(todayDay);
+              if (todayDay === 8 && (!local.tinyHabit || !local.tinyHabit.active)) {
+                setPromptOpen(true);
+              }
+            }
+          } catch (e) {
+            // fallback: persist without computing todayDay
+            saveState(local);
+            if (mounted) setState(local);
+          }
         } catch (e) {
           console.debug("Failed to merge server challenge_days into local state", e);
         }
@@ -402,7 +433,7 @@ export default function DashboardPage() {
           <h1 className="text-xl sm:text-2xl font-semibold truncate">30‑Day Challenge</h1>
           <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground mt-1">
             <p className="truncate">
-              Started {format(new Date(state.startDateISO + "T00:00:00"), "MMM d")} · Goal:
+              Started {format(new Date(rightDay + "T00:00:00"), "MMM d")} · Goal:
             </p>
             <Badge variant="secondary" className="align-middle truncate max-w-xs">
               {intake.goal}

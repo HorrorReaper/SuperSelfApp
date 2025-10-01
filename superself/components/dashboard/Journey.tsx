@@ -3,15 +3,17 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
+import { Card, CardContent } from "@/components/ui/card";
 
 type JourneyProps = {
   title: string;
   description: string;
   continueHref: string; // where to go if user has data
   exploreHref: string;  // where to go if user has no data
+  imageUrl?: string;
 };
 
-export default function Journey({ title, description, continueHref, exploreHref }: JourneyProps) {
+export default function Journey({ title, description, continueHref, exploreHref, imageUrl }: JourneyProps) {
   const [hasData, setHasData] = useState(false);
   const router = useRouter();
 
@@ -32,22 +34,45 @@ export default function Journey({ title, description, continueHref, exploreHref 
   }, []);
 
   return (
-    <div className="bg-gradient-to-br from-blue-200 via-green-100 to-green-300 rounded-3xl shadow-xl p-8 mt-10 flex flex-col items-center text-center">
-      <h1 className="text-3xl font-extrabold text-green-700 mb-2">{title}</h1>
-      <p className="mb-6 text-lg text-gray-700">{description}</p>
-      <Button
-        variant="outline"
-        className="mt-4 px-8 py-3 text-lg font-bold bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full shadow-lg hover:scale-105 transition-transform duration-200 border-none cursor-pointer"
-        onClick={() => {
-          if (hasData) {
-            router.push(continueHref);
-          } else {
-            router.push(exploreHref);
-          }
-        }}
-      >
-        {hasData ? "Continue" : "Explore Journey"}
-      </Button>
+    <div className="">
+      
+      <Card className="overflow-hidden px-4 py-2">
+        <CardContent className="grid p-0 md:grid-cols-2">
+          <form className="p-6 md:p-8">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col items-center text-center">
+                <h1 className="text-2xl font-bold">{title}</h1>
+                <p className="text-muted-foreground text-balance">
+                  {description}
+                </p>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 px-8 py-3 text-lg font-bold bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full shadow-lg hover:scale-105 transition-transform duration-200 border-none cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (hasData) {
+                    router.push(continueHref);
+                  } else {
+                    router.push(exploreHref);
+                  }
+                }}
+              >
+                {hasData ? "Continue" : "Explore Journey"}
+              </Button>
+            </div>
+          </form>
+          <div className="bg-muted relative hidden md:block">
+            <img
+              src={imageUrl}
+              alt="Image"
+              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

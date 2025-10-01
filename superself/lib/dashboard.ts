@@ -109,3 +109,41 @@ export async function fetchModulesWithProgress(userId: string): Promise<Module[]
         throw error;
     }
 }
+
+export async function fetchJourneysByUserId(userId: string): Promise<{ id: string; journey: string; description: string }[]> {
+    const { data: journeys, error: journeysError } = await supabase
+        .from('user_journey')
+        .select('id, journey, description, image_url')
+        .eq('user_id', userId);
+
+    if (journeysError) {
+        console.error("Error fetching journeys:", journeysError);
+        throw new Error(`Failed to fetch journeys: ${journeysError.message}`);
+    }
+    console.log("Fetched journeys:", journeys);
+
+    return (journeys || []).map(j => ({
+        id: j.id,
+        journey: j.journey,
+        description: j.description,
+        image_url: j.image_url
+    }));
+}
+export async function fetchAllJourneys(): Promise<{ id: string; title: string; description: string; slug: string;  image_url: string }[]> {
+    const { data: journeys, error: journeysError } = await supabase
+        .from('journeys')
+        .select('id, title, description, slug,  image_url');
+
+    if (journeysError) {
+        console.error("Error fetching all journeys:", journeysError);
+        throw new Error(`Failed to fetch all journeys: ${journeysError.message}`);
+    }
+
+    return (journeys || []).map(j => ({
+        id: j.id,
+        title: j.title,
+        description: j.description,
+        slug: j.slug,
+        image_url: j.image_url
+    }));
+}

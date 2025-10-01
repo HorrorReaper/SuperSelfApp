@@ -5,6 +5,8 @@ import { fetchModulesWithProgress, Module } from "@/lib/dashboard";
 import ModuleCard from "@/components/dashboard/ModuleCard";
 import JourneyCard from "@/components/dashboard/JourneyCard";
 import { AchievementUnlockToaster } from "@/components/achievements/unlock-toaster";
+import { Button } from "@/components/ui/button";
+import StartNewJourneyModal from '@/components/dashboard/StartNewJourneyModal';
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
@@ -106,8 +108,11 @@ export default function DashboardPage() {
                         ))}
                     </div>
 
-                    <div>
+                    <div className="mt-10 space-y-4 flex flex-col items-center mb-10">
                         <JourneyCard />
+                        <StartNewJourneyModal>
+                            <Button className="text-center hover:cursor-pointer">Start New Journey</Button>
+                        </StartNewJourneyModal>
                     </div>
                 </div>
             )}
