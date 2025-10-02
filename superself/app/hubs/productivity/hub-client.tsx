@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { loadHubLayout, saveHubLayout, defaultHubLayout} from "@/lib/hubs/productivity/hub-layout";
 import { HubCalendar } from "@/components/hub/productivity/hub-calendar";
@@ -15,6 +14,7 @@ import { HubTimer } from "@/components/hub/productivity/hub-timer";
 import { GripVertical, Eye, EyeOff, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { WidgetId, WidgetItem } from "@/lib/types";
+import { NextDayExecute } from "@/components/hub/productivity/nextday-execute";
 
 // Registry of widgets to render and display labels
 const WIDGET_REGISTRY: Record<WidgetId, { label: string; render: () => React.ReactElement }> = {
@@ -100,6 +100,7 @@ export function ProductivityHubClient() {
           </div>
         </div>
       </Card>
+      <NextDayExecute />
       <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold">Productivity Hub</h1>
         <div className="ml-auto flex items-center gap-2">

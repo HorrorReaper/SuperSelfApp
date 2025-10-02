@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { ChallengeNavBarConnected } from "@/components/sichallenge/newUI/challenge-nav-bar-connected";
 import { UserButton } from "@/components/user/user-button";
 import Chatbot from "@/components/chatbot/chatbot";
+import { PlanFAB } from "@/components/hub/productivity/plan-fab";
+import { BlockReminders } from "@/components/hub/productivity/block-reminders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +36,8 @@ export default function RootLayout({
         <ChallengeNavBarConnected title="SuperSelf" rightSlot={<UserButton />} />
         {children}
         <Toaster position="top-center" richColors closeButton />
+        <BlockReminders />
+        <PlanFAB />
         <Chatbot />
       </body>
     </html>

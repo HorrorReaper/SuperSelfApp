@@ -1,28 +1,53 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { fetchAllJourneys } from '@/lib/dashboard';
+import { fetchAllJourneys, fetchJourneysByUserId } from '@/lib/dashboard';
+import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
-export default function StartNewJourneyModal({ children }: { children?: React.ReactNode }) {
+export default function StartNewJourneyModal({ children, userid }: { children?: React.ReactNode, userid?: string }) {
     const [open, setOpen] = useState(false);
-    const [selectedJourney, setSelectedJourney] = useState('self-improvement-journey');
-    const [customTitle, setCustomTitle] = useState('');
+    const [selectedJourney, setSelectedJourney] = useState('');
     const [availableJourneys, setAvailableJourneys] = useState<any[]>([]);
     useEffect(() => {
         const getJourneys = async () => {
-            // Placeholder: fetch available journeys from backend (supabase)
             const journeys = await fetchAllJourneys();
-            console.log('Fetched journeys222', journeys);
-            setAvailableJourneys(journeys);
+            try {
+                const userId = userid ?? (await getCurrentUser())?.id;
+                if (!userId) {
+                    setAvailableJourneys(journeys);
+                    if (journeys.length && !selectedJourney) setSelectedJourney(journeys[0].id);
+                    return;
+                }
+
+                const enrolled = await fetchJourneysByUserId(userId);
+                const enrolledIds = new Set(enrolled.map((e: any) => e.journey_id).filter(Boolean));
+                const enrolledSlugs = new Set(enrolled.map((e: any) => e.slug).filter(Boolean));
+
+                const filtered = (journeys || []).filter((j: any) => !enrolledIds.has(j.id) && !enrolledSlugs.has(j.slug));
+                setAvailableJourneys(filtered);
+                if (filtered.length && !selectedJourney) setSelectedJourney(filtered[0].id);
+            } catch (e) {
+                console.error('Failed to fetch enrolled journeys, falling back to all journeys', e);
+                setAvailableJourneys(journeys);
+                if (journeys.length && !selectedJourney) setSelectedJourney(journeys[0].id);
+            }
         };
         getJourneys();
     }, []);
 
-    function startJourney() {
+    async function startJourney() {
         // Placeholder: integrate with actual creation logic (supabase upsert) later
-        console.log('Starting journey', selectedJourney );
+        const { error: dbError } = await supabase.from("user_journey").upsert({
+            user_id: userid,
+            journey_id: selectedJourney
+        });
+        if (dbError) {
+            console.error('Failed to start journey', dbError);
+        } else {
+            console.log('Starting journey', selectedJourney);
+        }
         setOpen(false);
     }
 
@@ -34,7 +59,11 @@ export default function StartNewJourneyModal({ children }: { children?: React.Re
             <DialogContent className="max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Start a new journey</DialogTitle>
-                    <p className="text-sm text-muted-foreground mt-2">Choose a journey to begin and give it a title.</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                        {availableJourneys.length === 0
+                            ? "You've already enrolled in all available journeys — try completing your current one or check back later for new journeys."
+                            : 'Choose a journey to begin with'}
+                    </p>
                 </DialogHeader>
 
                 <div className="space-y-4 mt-4">
@@ -45,12 +74,12 @@ export default function StartNewJourneyModal({ children }: { children?: React.Re
                                 <button
                                     key={journey.id}
                                     type="button"
-                                    onClick={() => setSelectedJourney(journey.slug)}
+                                    onClick={() => setSelectedJourney(journey.id)}
                                     className={`w-full flex items-center justify-between p-3 border rounded-lg text-left hover:shadow transition-shadow duration-150 ${
-                                        selectedJourney === journey.slug ? 'ring-2 ring-green-400 border-green-300' : 'border-gray-200'
+                                        selectedJourney === journey.id ? 'ring-2 ring-green-400 border-green-300' : 'border-gray-200'
                                     }`}
                                 >
-                                    <div className="flex-1 pr-4">
+                                    <div className="flex-1 pr-4" key={journey.id}>
                                         <div className="font-semibold">{journey.title}</div>
                                         <div className="text-sm text-muted-foreground mt-1">{journey.description}</div>
                                     </div>
@@ -70,7 +99,7 @@ export default function StartNewJourneyModal({ children }: { children?: React.Re
 
                 <DialogFooter>
                     <Button variant="secondary" onClick={() => setOpen(false)} className="mr-2">Cancel</Button>
-                    <Button onClick={startJourney}>Start</Button>
+                    <Button onClick={startJourney} disabled={!selectedJourney || availableJourneys.length === 0} className='bg-green-500 hover:bg-green-600 text-white hover:cursor-pointer'>Start</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

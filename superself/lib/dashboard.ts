@@ -110,24 +110,34 @@ export async function fetchModulesWithProgress(userId: string): Promise<Module[]
     }
 }
 
-export async function fetchJourneysByUserId(userId: string): Promise<{ id: string; journey: string; description: string }[]> {
+export async function fetchJourneysByUserId(userId: string): Promise<{ id: string; journey?: string; journey_id?: string; title?: string; description?: string; image_url?: string; slug?: string }[]> {
+    // Select the user_journey rows and include the related journeys row via relationship
     const { data: journeys, error: journeysError } = await supabase
         .from('user_journey')
-        .select('id, journey, description, image_url')
+        .select('id, journey, journey_id,  journeys(id, title, description, image_url, slug)')
         .eq('user_id', userId);
 
     if (journeysError) {
         console.error("Error fetching journeys:", journeysError);
         throw new Error(`Failed to fetch journeys: ${journeysError.message}`);
     }
-    console.log("Fetched journeys:", journeys);
+    console.log("Fetched journeys (with joined journeys):", journeys);
 
-    return (journeys || []).map(j => ({
-        id: j.id,
-        journey: j.journey,
-        description: j.description,
-        image_url: j.image_url
-    }));
+    return (journeys || []).map((j: any) => {
+        // Supabase may return the related row as an object or an array depending on relationship
+        const joined = j.journeys ?? null;
+        const journeyRow = Array.isArray(joined) ? joined[0] : joined;
+
+        return {
+            id: j.id,
+            journey: j.journey ?? journeyRow?.slug,
+            journey_id: j.journey_id ?? null,
+            title: journeyRow?.title ?? j.journey ?? null,
+            description: journeyRow?.description ?? j.description ?? null,
+            image_url: journeyRow?.image_url ?? j.image_url ?? null,
+            slug: journeyRow?.slug ?? null,
+        };
+    });
 }
 export async function fetchAllJourneys(): Promise<{ id: string; title: string; description: string; slug: string;  image_url: string }[]> {
     const { data: journeys, error: journeysError } = await supabase

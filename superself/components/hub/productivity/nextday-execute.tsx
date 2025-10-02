@@ -6,8 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-
-function todayISO() { return new Date().toISOString().slice(0,10); }
+import { todayISO } from "@/lib/convert";
 
 export function NextDayExecute() {
   const router = useRouter();

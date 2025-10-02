@@ -109,8 +109,8 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="mt-10 space-y-4 flex flex-col items-center mb-10">
-                        <JourneyCard />
-                        <StartNewJourneyModal>
+                        <JourneyCard userid={user.id}/>
+                        <StartNewJourneyModal userid={user.id}>
                             <Button className="text-center hover:cursor-pointer">Start New Journey</Button>
                         </StartNewJourneyModal>
                     </div>

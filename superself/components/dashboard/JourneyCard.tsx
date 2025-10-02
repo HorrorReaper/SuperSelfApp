@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Journey from './Journey';
-import { getCurrentUser } from '@/lib/auth';
 import { fetchJourneysByUserId } from '@/lib/dashboard';
 
-export default function JourneyCard() {
+export default function JourneyCard({ userid }: { userid?: string }) {
   const [journeys, setJourneys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,12 +12,8 @@ export default function JourneyCard() {
     let mounted = true;
     const load = async () => {
       try {
-        const user = await getCurrentUser();
-        if (!user) {
-          window.location.href = '/auth/sign-in';
-          return;
-        }
-        const rows = await fetchJourneysByUserId(user.id);
+
+        const rows = await fetchJourneysByUserId(userid);
         if (!mounted) return;
         setJourneys(Array.isArray(rows) ? rows : []);
       } catch (err) {
@@ -48,18 +43,8 @@ export default function JourneyCard() {
 
       {!loading && journeys.length === 0 && (
         <>
-          <Journey
-            title="30 Day Self Improvement Challenge"
-            description="Become a better version of yourself with daily challenges and tips."
-            continueHref="/journeys/self-improvement-journey"
-            exploreHref="/journeys/self-improvement-journey/journey-intro"
-          />
-          <Journey
-            title="Fitness"
-            description="Get in shape with our personalized fitness plans and track your progress."
-            continueHref="/hubs/fitness"
-            exploreHref="/hubs/fitness/intro"
-          />
+          <p className="text-muted-foreground">No journeys found. Please check back later.</p>
+          <p className="text-muted-foreground">Or start a new journey!</p>
         </>
       )}
 
@@ -68,11 +53,13 @@ export default function JourneyCard() {
           {journeys.map((j, idx) => (
             <Journey
               key={j.id ?? j.slug ?? idx}
-              title={j.journey ?? j.name ?? `Journey ${idx + 1}`}
+              id={j.journey_id ?? j.id}
+              title={j.title ?? j.journey ?? `Journey ${idx + 1}`}
               description={j.description ?? ''}
               continueHref={mapContinueHref(j)}
               exploreHref={mapExploreHref(j)}
               imageUrl={j.image_url ?? `/images/journeys/${j.slug ?? 'self-improvement-journey'}.jpg`}
+              userid={userid}
             />
           ))}
         </div>

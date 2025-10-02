@@ -28,14 +28,14 @@ function Chip({ label, selected, onClick }: ChipProps) {
   );
 }
 
-const PRIMARY_GOALS: { key: PrimaryGoal; title: string; desc: string }[] = [
-  { key: "focus", title: "Focus & productivity", desc: "Daily deep-work momentum" },
-  { key: "sleep", title: "Sleep consistency", desc: "Stabilize your sleep window" },
-  { key: "movement", title: "Daily movement/steps", desc: "Build an active baseline" },
-  { key: "nutrition", title: "Healthy eating basics", desc: "Simple, sustainable nutrition" },
-  { key: "stress", title: "Stress reduction", desc: "Lower stress with micro-practices" },
-  { key: "learning", title: "Learning habit", desc: "Show up for your curiosity" },
-  { key: "overall improvement", title: "Overall self-improvement", desc: "A mix of all areas" },
+const PRIMARY_GOALS: { key: PrimaryGoal; title: string; desc: string; available: boolean }[] = [
+  { key: "focus", title: "Focus & productivity", desc: "Daily deep-work momentum", available: true },
+  { key: "sleep", title: "Sleep consistency", desc: "Stabilize your sleep window", available: false },
+  { key: "movement", title: "Daily movement/steps", desc: "Build an active baseline", available: false },
+  { key: "nutrition", title: "Healthy eating basics", desc: "Simple, sustainable nutrition", available: false },
+  { key: "stress", title: "Stress reduction", desc: "Lower stress with micro-practices", available: false },
+  { key: "learning", title: "Learning habit", desc: "Show up for your curiosity", available: false },
+  { key: "overall improvement", title: "Overall self-improvement", desc: "A mix of all areas", available: true },
 ];
 
 function getHabitOptions(goalKey: string): string[] {
@@ -240,21 +240,32 @@ export default function Step1Page() {
           <h2 className="text-xl font-bold text-blue-700 mb-2">Primary goal for the next 30 days</h2>
           <p className="text-sm text-gray-600 mb-3">Guides lesson emphasis and daily prompts.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {PRIMARY_GOALS.map((g) => (
-              <button
-                key={g.key}
-                type="button"
-                onClick={() => setPrimaryGoal(g.key)}
-                className={`text-left p-4 rounded-2xl border transition ${
-                  primaryGoal === g.key
-                    ? "bg-gradient-to-r from-green-500 to-blue-500 text-white border-transparent shadow"
-                    : "bg-white/70 border-blue-200 hover:bg-blue-50"
-                }`}
-              >
-                <div className="font-semibold">{g.title}</div>
-                <div className="text-sm opacity-90">{g.desc}</div>
-              </button>
-            ))}
+            {PRIMARY_GOALS.map((g) => {
+              const isAvailable = g.available;
+              const isSelected = primaryGoal === g.key;
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => {
+                    if (!isAvailable) return;
+                    setPrimaryGoal(g.key);
+                  }}
+                  disabled={!isAvailable}
+                  className={`text-left p-4 rounded-2xl border transition ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white border-transparent shadow'
+                      : isAvailable
+                      ? 'bg-white/70 border-blue-200 hover:bg-blue-50'
+                      : 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed opacity-90'
+                  }`}
+                >
+                  <div className="font-semibold">{g.title}</div>
+                  <div className="text-sm opacity-90">{g.desc}</div>
+                  {!isAvailable && <div className="text-sm text-gray-500 mt-2 italic">coming soon...</div>}
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -383,7 +394,7 @@ export default function Step1Page() {
         </section>
 
         {/* Barriers and supports */}
-        <section className="mb-8">
+        <section className="mb-8 hidden">
           <h2 className="text-xl font-bold text-blue-700 mb-2">Barriers and supports</h2>
           <p className="text-sm text-gray-600 mb-3">Pick up to 2 each to shape micro-actions and tips.</p>
           <div className="grid sm:grid-cols-2 gap-4">

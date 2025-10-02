@@ -8,13 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
+import { tomorrowISO } from "@/lib/convert";
+import { isValidTime, toMinutes } from "@/lib/validators";
+import { FullDayCalendar } from "@/components/hub/productivity/full-day-calendar";
 
 type Task = { id: number; text: string; essential?: boolean; frog?: boolean; completed_at?: string | null };
 
-function tomorrowISO() {
-  const d = new Date(); d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0,10);
-}
+// tomorrowISO imported from lib/convert
 
 export default function PlanNextDayPage() {
   const [loading, setLoading] = useState(true);
@@ -25,12 +25,20 @@ export default function PlanNextDayPage() {
   // plan state
   const [frogId, setFrogId] = useState<string>("");
   const [essentialIds, setEssentialIds] = useState<string[]>([]);
-  const [blocks, setBlocks] = useState<{ start: string; end: string; title: string; kind: string }[]>([]);
+  const [blocks, setBlocks] = useState<{ start: string; end: string; title: string; kind: string; task_id?: number | null }[]>([]);
+
   const [checklist, setChecklist] = useState<{ label: string; done: boolean }[]>([]);
   const [notes, setNotes] = useState<string>("");
 
   // tasks from server
   const [tasks, setTasks] = useState<Task[]>([]);
+
+  const displayBlocks = blocks.map(b => ({
+    ...b,
+    title: b.task_id
+      ? `${b.title} • ${tasks.find(t => t.id === b.task_id)?.text ?? "Task"}`
+      : b.title,
+  }));
 
   useEffect(() => {
     (async () => {
@@ -75,13 +83,32 @@ export default function PlanNextDayPage() {
   }, [planDate, supabase]);
 
   function addBlock() {
-    setBlocks([...blocks, { start: "09:00", end: "10:00", title: "Focus Block", kind: "focus" }]);
+    setBlocks([...blocks, { start: "09:00", end: "10:00", title: "Focus Block", kind: "focus", task_id: null }]);
   }
   function updateBlock(i: number, patch: Partial<typeof blocks[number]>) {
     setBlocks(blocks.map((b, idx) => idx === i ? { ...b, ...patch } : b));
   }
   function removeBlock(i: number) {
     setBlocks(blocks.filter((_, idx) => idx !== i));
+  }
+
+  // validators moved to lib/validators.ts
+
+  function validateBlocks() {
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      if (!isValidTime(b.start) || !isValidTime(b.end)) {
+        toast.error("Invalid time format", { description: `Block #${i + 1} has invalid start or end time. Use HH:MM.` });
+        return false;
+      }
+      const s = toMinutes(b.start);
+      const e = toMinutes(b.end);
+      if (s >= e) {
+        toast.error("Invalid time range", { description: `Block #${i + 1} start must be before end.` });
+        return false;
+      }
+    }
+    return true;
   }
 
   function addChecklistItem() {
@@ -96,6 +123,7 @@ export default function PlanNextDayPage() {
 
   async function save() {
     if (!planId) return;
+    if (!validateBlocks()) return;
     setSaving(true);
     const payload = {
       plan_date: planDate,
@@ -179,8 +207,8 @@ export default function PlanNextDayPage() {
                     <div className="text-sm text-muted-foreground">Add 2–4 focus blocks and key events.</div>
                   ) : blocks.map((b, i) => (
                     <div key={i} className="flex flex-wrap items-center gap-2 rounded-md border p-2">
-                      <Input className="w-24" value={b.start} onChange={(e)=>updateBlock(i,{start:e.target.value})} placeholder="08:30" />
-                      <Input className="w-24" value={b.end} onChange={(e)=>updateBlock(i,{end:e.target.value})} placeholder="10:00" />
+                      <Input type="time" className="w-24" value={b.start} onChange={(e)=>updateBlock(i,{start:e.target.value})} placeholder="08:30" />
+                      <Input type="time" className="w-24" value={b.end} onChange={(e)=>updateBlock(i,{end:e.target.value})} placeholder="10:00" />
                       <Input className="w-[220px]" value={b.title} onChange={(e)=>updateBlock(i,{title:e.target.value})} placeholder="Deep Work" />
                       <Select value={b.kind} onValueChange={(v)=>updateBlock(i,{kind:v})}>
                         <SelectTrigger className="w-[140px]"><SelectValue placeholder="Kind" /></SelectTrigger>
@@ -193,12 +221,49 @@ export default function PlanNextDayPage() {
                           <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
+                      {b.kind === "focus" && (
+                        <Select
+                          value={b.task_id ? String(b.task_id) : ""}
+                          onValueChange={(v)=>updateBlock(i,{ task_id: v ? Number(v) : null })}
+                        >
+                          <SelectTrigger className="w-[240px]">
+                            <SelectValue placeholder="Assign a task to this focus block" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {/* Prefer uncompleted tasks */}
+                            {tasks
+                              .filter(t => !t.completed_at)
+                              .map(t => (
+                                <SelectItem key={t.id} value={String(t.id)}>
+                                  {t.text}
+                                </SelectItem>
+                              ))
+                            }
+                            {/* Fallback: allow completed tasks too */}
+                            {tasks
+                              .filter(t => t.completed_at)
+                              .map(t => (
+                                <SelectItem key={t.id} value={String(t.id)}>
+                                  ✅ {t.text}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
+                      )}
                       <Button variant="destructive" size="sm" onClick={()=>removeBlock(i)}>Remove</Button>
                     </div>
                   ))}
                 </div>
               </section>
-
+              <section className="space-y-2">
+                <div className="text-sm font-medium">Day Timeline (Preview)</div>
+                <div className="rounded-lg border">
+                  
+                  <FullDayCalendar blocks={displayBlocks} />
+                </div>
+              </section>
+              
               {/* Checklist + Notes */}
               <section className="space-y-2">
                 <div className="flex items-center justify-between">

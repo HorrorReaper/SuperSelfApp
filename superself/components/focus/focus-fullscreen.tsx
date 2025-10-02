@@ -22,6 +22,7 @@ import {
   deleteTodo,
 } from "@/lib/timer";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 function formatMMSS(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
@@ -147,7 +148,39 @@ const BG_KEY = "focus_bg_url"; // localStorage key
 
 export function FocusFullscreen() {
   const params = useSearchParams();
-  const defaultM = Math.max(5, Math.min(60, Number(params.get("m")) || 25));
+  // Read params: prefer `duration`, fall back to `m` for legacy
+  const paramDuration = (() => {
+    const d = params.get("duration") ?? params.get("m");
+    const n = Number(d);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
+  })();
+  const defaultM = Math.max(5, Math.min(60, paramDuration ?? 25));
+  const sessionTitleParam = params.get("title") ?? "";
+  const sessionTaskId = params.get("task_id") ?? "";
+  const [sessionTaskText, setSessionTaskText] = React.useState<string | null>(null);
+
+  // If a task_id is present, fetch the task text to show a friendlier label
+  React.useEffect(() => {
+    if (!sessionTaskId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const idNum = Number(sessionTaskId);
+        if (!Number.isFinite(idNum)) return;
+        const { data, error } = await supabase.from("tasks").select("text").eq("id", idNum).maybeSingle();
+        if (error) {
+          // non-fatal
+          toast.error("Could not load task");
+          return;
+        }
+        if (!mounted) return;
+        setSessionTaskText((data as any)?.text ?? null);
+      } catch (err) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, [sessionTaskId]);
 
   const [state, setState] = React.useState<TimerState | null>(null);
   const [tick, setTick] = React.useState(0);
@@ -159,7 +192,14 @@ export function FocusFullscreen() {
 
   // Initialize or load timer
   React.useEffect(() => {
-    let t = loadTimer() ?? initTimer(defaultM * 60);
+    // If URL provides a duration, initialize/reset to that duration so the session matches the link
+    const targetSeconds = defaultM * 60;
+    let t = loadTimer() ?? initTimer(targetSeconds);
+    if (t && t.targetSeconds !== targetSeconds) {
+      // Reset to the requested duration while preserving other timer fields
+      resetTimer(targetSeconds);
+      t = loadTimer() ?? initTimer(targetSeconds);
+    }
     if (t && !Array.isArray((t as any).todos)) {
       (t as any).todos = [];
       saveTimer(t as any);
@@ -240,7 +280,17 @@ export function FocusFullscreen() {
 
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between px-4 py-3">
-        <div className="text-sm opacity-90">Focus Session</div>
+        <div>
+          <div className="text-sm opacity-90">Focus Session</div>
+          {sessionTitleParam || sessionTaskId ? (
+            <div className="text-xs opacity-80">
+              {sessionTitleParam}
+              {sessionTaskId ? (
+                sessionTaskText ? ` • ${sessionTaskText}` : ` • Task #${sessionTaskId}`
+              ) : null}
+            </div>
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           <Input
             className="h-8 w-[320px] bg-white/10 placeholder:text-white/70"

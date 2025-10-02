@@ -2,36 +2,41 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
-import { getCurrentUser } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 
 type JourneyProps = {
+  id: string;
   title: string;
   description: string;
   continueHref: string; // where to go if user has data
   exploreHref: string;  // where to go if user has no data
   imageUrl?: string;
+  userid: string | undefined;
 };
 
-export default function Journey({ title, description, continueHref, exploreHref, imageUrl }: JourneyProps) {
+export default function Journey({ title, description, continueHref, exploreHref, imageUrl, userid, id }: JourneyProps) {
   const [hasData, setHasData] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     async function checkUserJourney() {
-      const user = await getCurrentUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("user_journey")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("journey",title);
-      if (data && data.length > 0) {
-        setHasData(true);
+      if (!userid || !id) return;
+
+      try {
+        const { data } = await supabase
+          .from("user_journey")
+          .select("id")
+          .eq("user_id", userid)
+          .eq("journey_id", id);
+        if (data && data.length > 0) {
+          setHasData(true);
+        }
+      } catch (e) {
+        console.error('Failed to check user_journey', e);
       }
     }
     checkUserJourney();
-  }, []);
+  }, [userid, id]);
 
   return (
     <div className="">
