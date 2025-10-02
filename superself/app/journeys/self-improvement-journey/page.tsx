@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { format, set } from "date-fns";
+import { format} from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,18 @@ export default function DashboardPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewBrief, setPreviewBrief] = useState<MicroBrief | null>(null);
   const [rightDay, setRightDay] = useState<string>("");
+  const [quoteIndex, setQuoteIndex] = useState(0);
+  const QUOTES = [
+    "Small consistent actions compound into big change.",
+    "Focus on showing up — progress follows.",
+    "One step today is better than perfect planning tomorrow.",
+    "Celebrate the tiny wins — they build momentum.",
+  ];
+
+  useEffect(() => {
+    const t = setInterval(() => setQuoteIndex((i) => (i + 1) % QUOTES.length), 4500);
+    return () => clearInterval(t);
+  }, []);
 
   // Normalize overall key; prefer a machine key without spaces
   const goalKey = String(intake?.goal ?? "");
@@ -246,7 +258,40 @@ export default function DashboardPage() {
     return (
       <div className="max-w-screen-sm mx-auto px-4 py-6">
         <h1 className="text-xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-2">Loading…</p>
+        <div className="mt-3 text-sm text-muted-foreground">Loading…</div>
+
+        <div className="mt-6 flex items-center gap-4">
+          <div className="relative w-10 h-10">
+            <div className="sonner-spinner" style={{width: 40, height: 40}}>
+              {Array.from({length:12}).map((_, i) => (
+                <div key={i} className="sonner-loading-bar" />
+              ))}
+            </div>
+          </div>
+          <div className="flex-1">
+            {!intake ? (
+              <div>
+                <h2 className="text-lg font-medium">No Intake Found</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  It looks like you haven't personalized your 30‑day challenge yet. Intake (your goals and habit choices) is stored locally in your browser.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <a href="/journeys/self-improvement-journey/journey-intro/steps/step1">
+                    <Button className="px-4 py-2">Start personalization</Button>
+                  </a>
+                  <a href="/journeys/self-improvement-journey/journey-intro/steps/step1" className="text-sm text-muted-foreground self-center">
+                    Or re-open the onboarding
+                  </a>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-4 italic text-sm text-muted-foreground">“{QUOTES[quoteIndex]}”</div>
+          </div>
+        </div>
+
+        {!state ? (<h1 className="mt-4">No State Found</h1>) : null}
+        {!derived ? (<h1 className="mt-4">No Derived Found</h1>) : null}
       </div>
     );
   }
@@ -426,6 +471,14 @@ export default function DashboardPage() {
     // Optionally reflect in UI (e.g., toast or small badge)
   }
 
+  const startedLabel = (() => {
+    try {
+      return rightDay ? format(new Date(rightDay + "T00:00:00"), "MMM d") : "—";
+    } catch (e) {
+      return "—";
+    }
+  })();
+
   return (
     <div className="max-w-screen-sm mx-auto px-4 py-6 space-y-4 overflow-x-hidden">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -433,7 +486,7 @@ export default function DashboardPage() {
           <h1 className="text-xl sm:text-2xl font-semibold truncate">30‑Day Challenge</h1>
           <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground mt-1">
             <p className="truncate">
-              Started {format(new Date(rightDay + "T00:00:00"), "MMM d")} · Goal:
+              Started {startedLabel} · Goal:
             </p>
             <Badge variant="secondary" className="align-middle truncate max-w-xs">
               {intake.goal}
