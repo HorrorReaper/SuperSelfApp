@@ -13,15 +13,19 @@ export default function SignInPage() {
     setError("");
     setIsLoading(true);
     try {
-      const { data, error } = await signIn(email, password);
+      const { error } = await signIn(email, password);
       if (error) {
         setError(error.message);
       } else {
         // Redirect on success
         window.location.href = "/dashboard";
       }
-    } catch (e: any) {
-      setError(e?.message || "An unexpected error occurred");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError(String(err) || "An unexpected error occurred");
+      }
     } finally {
       setIsLoading(false);
     }

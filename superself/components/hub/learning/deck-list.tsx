@@ -27,15 +27,20 @@ export function DecksList() {
       await createDeck({ title: t });
       setNewTitle("");
       refresh();
-    } catch (e: any) {
-      toast.error("Could not create deck", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not create deck", { description: msg });
     } finally { setCreating(false); }
   }
 
   async function removeDeck(id: number) {
     if (!confirm("Delete this deck and its cards?")) return;
-    try { await deleteDeck(id); refresh(); } catch (e: any) {
-      toast.error("Could not delete deck", { description: e?.message });
+    try {
+      await deleteDeck(id);
+      refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not delete deck", { description: msg });
     }
   }
 

@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { getFriendships, meId } from "@/lib/social";
 
 type Period = "alltime" | "7d" | "30d";
-type LeaderRow = {
+export type LeaderRow = {
   user_id: string;
   xp_alltime: number;
   xp_7d: number;
@@ -11,26 +11,33 @@ type LeaderRow = {
   profile: { id: string; username: string | null; name: string | null; avatar_url: string | null; level: number | null; xp: number | null };
 };
 
+type RawLeaderboardRow = {
+  user_id?: string;
+  xp_alltime?: number | null;
+  xp_7d?: number | null;
+  xp_30d?: number | null;
+  profile?: unknown;
+};
+
 function orderKey(period: Period) {
   return period === "alltime" ? "xp_alltime" : period === "7d" ? "xp_7d" : "xp_30d";
 }
 
-// Helper to extract the "other user" id from an edge, regardless of column naming
-function otherPartyId(edge: any, my: string) {
-  if (edge?.a_id && edge?.b_id) {
-    if (edge.a_id === my) return edge.b_id;
-    if (edge.b_id === my) return edge.a_id;
-  }
-  if (edge?.requester_id && edge?.addressee_id) {
-    if (edge.requester_id === my) return edge.addressee_id;
-    if (edge.addressee_id === my) return edge.requester_id;
-  }
-  if (edge?.user_id && edge?.friend_id) {
-    if (edge.user_id === my) return edge.friend_id;
-    if (edge.friend_id === my) return edge.user_id;
-  }
-  return null;
+// Normalize a raw leaderboard row (defensive about joined profile shapes)
+function normalizeLeaderboardRow(r: RawLeaderboardRow): LeaderRow {
+  const profileRaw = Array.isArray(r.profile) ? r.profile[0] : r.profile;
+  const profile = (profileRaw as LeaderRow['profile']) ?? { id: '', username: null, name: null, avatar_url: null, level: null, xp: null };
+  return {
+    user_id: r.user_id ?? '',
+    xp_alltime: r.xp_alltime ?? 0,
+    xp_7d: r.xp_7d ?? 0,
+    xp_30d: r.xp_30d ?? 0,
+    profile,
+  } as LeaderRow;
 }
+
+// Helper to extract the "other user" id from an edge, regardless of column naming
+// (removed unused helper otherPartyId)
 
 export async function fetchFriendsLeaderboard(period: Period, limit = 50) {
   const my = await meId();
@@ -70,16 +77,7 @@ export async function fetchFriendsLeaderboard(period: Period, limit = 50) {
     .limit(limit);
 
   if (error) throw error;
-  const rows = (data ?? []).map((r: any) => {
-    const profile = Array.isArray(r.profile) ? r.profile[0] : r.profile;
-    return {
-      user_id: r.user_id,
-      xp_alltime: r.xp_alltime ?? 0,
-      xp_7d: r.xp_7d ?? 0,
-      xp_30d: r.xp_30d ?? 0,
-      profile,
-    } as LeaderRow;
-  });
+  const rows = (data ?? []).map((r: RawLeaderboardRow) => normalizeLeaderboardRow(r));
   return rows;
 }
 export async function fetchGlobalLeaderboard(period: Period, limit = 50) {
@@ -98,16 +96,7 @@ export async function fetchGlobalLeaderboard(period: Period, limit = 50) {
     .limit(limit);
 
   if (error) throw error;
-  const rows = (data ?? []).map((r: any) => {
-    const profile = Array.isArray(r.profile) ? r.profile[0] : r.profile;
-    return {
-      user_id: r.user_id,
-      xp_alltime: r.xp_alltime ?? 0,
-      xp_7d: r.xp_7d ?? 0,
-      xp_30d: r.xp_30d ?? 0,
-      profile,
-    } as LeaderRow;
-  });
+  const rows = (data ?? []).map((r: RawLeaderboardRow) => normalizeLeaderboardRow(r));
   return rows;
 }
 export async function fetchGroupLeaderboard(groupId: number, period: "7d"|"30d"|"alltime", limit = 50) {
@@ -120,7 +109,7 @@ export async function fetchGroupLeaderboard(groupId: number, period: "7d"|"30d"|
     .eq("group_id", groupId);
   if (membersErr) throw membersErr;
   // Remove any duplicate user_ids from group_members before querying leaderboards
-  const ids = Array.from(new Set((members ?? []).map((m: any) => m.user_id).filter(Boolean)));
+  const ids = Array.from(new Set((members ?? []).map((m: { user_id?: string }) => m.user_id).filter(Boolean)));
   if (ids.length === 0) return [];
 
   // 2) Query leaderboards for those user ids and join profiles from the leaderboards side.
@@ -139,16 +128,7 @@ export async function fetchGroupLeaderboard(groupId: number, period: "7d"|"30d"|
 
   if (error) throw error;
 
-  const rows = (data ?? []).map((r: any) => {
-    const profile = Array.isArray(r.profile) ? r.profile[0] : r.profile;
-    return {
-      user_id: r.user_id,
-      xp_alltime: r.xp_alltime ?? 0,
-      xp_7d: r.xp_7d ?? 0,
-      xp_30d: r.xp_30d ?? 0,
-      profile,
-    } as LeaderRow;
-  });
+  const rows = (data ?? []).map((r: RawLeaderboardRow) => normalizeLeaderboardRow(r));
 
   // Defensive: dedupe rows by user_id in case the leaderboards source returns
   // multiple rows for the same user (can happen with certain views or joins).

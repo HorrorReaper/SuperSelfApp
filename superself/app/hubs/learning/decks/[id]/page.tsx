@@ -2,8 +2,8 @@
 
 import { DeckEditor } from "@/components/hub/learning/deck-editor";
 
-export default async function DeckPage({ params }: { params: { id: string } }) {
-  const { id } = await params;
+export default async function DeckPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params as { id: string };
   const deckId = Number(id);
   return (
     <>

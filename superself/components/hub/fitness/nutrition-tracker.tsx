@@ -1,6 +1,6 @@
 // components/fitness/nutrition-tracker.tsx
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,27 +19,36 @@ export function NutritionTracker() {
   const [target, setTarget] = useState({ calories: 2000, protein_g: 150, carbs_g: 250, fat_g: 70 });
 
   // Targets (client-configurable later; simple defaults)
+  // getMacroTargets is a stable imported helper; including it in deps is unnecessary
+  // and would cause noise from the linter. Ignore exhaustive-deps for this effect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchTargets = async () => {
       const macroTargets = await getMacroTargets();
       // normalize possible shapes from the server: some profiles use
       // { protein, carbs, fat } while our UI expects { protein_g, carbs_g, fat_g }
-      const m = macroTargets as any;
+      const m = macroTargets as unknown;
+      const mRec = (m && typeof m === "object") ? (m as Record<string, unknown>) : {};
       const normalized = {
-        calories: m?.calories ?? 2000,
-        protein_g: m?.protein_g ?? m?.protein ?? 150,
-        carbs_g: m?.carbs_g ?? m?.carbs ?? 250,
-        fat_g: m?.fat_g ?? m?.fat ?? 70,
+        calories: (mRec.calories as number) ?? 2000,
+        protein_g: (mRec.protein_g as number) ?? (mRec.protein as number) ?? 150,
+        carbs_g: (mRec.carbs_g as number) ?? (mRec.carbs as number) ?? 250,
+        fat_g: (mRec.fat_g as number) ?? (mRec.fat as number) ?? 70,
       };
       setTarget(normalized);
     };
     fetchTargets();
   }, []);
 
-  async function refresh() {
-    try { setMeals(await listMeals()); } catch {}
-  }
-  useEffect(() => { refresh(); }, []);
+  const refresh = useCallback(async () => {
+    try {
+      setMeals(await listMeals());
+    } catch (_err: unknown) {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
 
   async function add() {
     const payload = {
@@ -53,8 +62,9 @@ export function NutritionTracker() {
       await addMeal(payload);
       setName("Meal"); setCal(""); setP(""); setC(""); setF("");
       refresh();
-    } catch (e: any) {
-      toast.error("Could not add meal", { description: e?.message });
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      toast.error("Could not add meal", { description: e.message });
     }
   }
 

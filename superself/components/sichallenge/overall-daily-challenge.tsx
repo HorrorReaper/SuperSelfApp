@@ -20,22 +20,20 @@ type Props = {
 export function OverallDailyChallenge({ day, brief, canComplete, onMarkedDone }: Props) {
   const actionCfg = OVERALL_ACTIONS[day];
 
-  function handleComplete(payload: any) {
+  function handleComplete(payload: unknown) {
     const s = loadState<ChallengeState>();
     if (!s) return;
     const rec = ensureDay(s.days, day);
 
-    const prev = rec.notes ? rec.notes + "\n" : "";
-    const p = typeof payload === "string" ? payload : JSON.stringify(payload);
+  const prev = rec.notes ? rec.notes + "\n" : "";
+  const p = typeof payload === "string" ? payload : JSON.stringify(payload ?? {});
     rec.notes = `${prev}[Day ${day} action] ${p}`;
 
-    if (payload?.minutes) {
+    // If payload contains minutes (timer action), add session
+  const maybeMinutes = (payload && typeof payload === "object") ? (payload as Record<string, unknown>)["minutes"] : undefined;
+  if (typeof maybeMinutes === "number") {
       rec.sessions = rec.sessions ?? [];
-      rec.sessions.push({
-        id: crypto.randomUUID(),
-        minutes: payload.minutes,
-        startedAt: new Date().toISOString(),
-      });
+      rec.sessions.push({ id: crypto.randomUUID(), minutes: maybeMinutes, startedAt: new Date().toISOString() });
       rec.habitMinutes = (rec.sessions ?? []).reduce((a, s) => a + (s.minutes || 0), 0);
     }
     saveState(s);

@@ -26,7 +26,7 @@ export default function SignUpPage(){
 
     const handleSubmit = async() => {
         // Handle sign up logic here
-        const { data, error } = await signUp(email, password, username, fullName, avatarUrl);
+        const { error } = await signUp(email, password, username, fullName, avatarUrl);
         if (error) {
             setError(error.message);
         }else{

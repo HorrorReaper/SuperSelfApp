@@ -28,7 +28,7 @@ export default function PhotoProofUploader({ day, label = "Upload photo proof" }
     setDataUrl(undefined);
     upsertDayActionData(day, (prev) => {
       const next = { ...(prev ?? {}) };
-      delete (next as any).photoProof;
+      delete (next as Record<string, unknown>)["photoProof"];
       return next;
     });
   }

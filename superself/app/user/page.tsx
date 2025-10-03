@@ -29,7 +29,9 @@ export default function UserPage() {
   useEffect(() => {
     const s = loadState<ChallengeState>();
     setState(s ?? initChallengeState());
-    setIntakeGoal(loadIntake<any>()?.goal ?? "");
+    type Intake = { goal?: string } | null | undefined;
+    const intake = loadIntake<Intake>();
+    setIntakeGoal(intake?.goal ?? "");
   }, []);
 
   const xp = state?.xp ?? 0;
@@ -53,7 +55,7 @@ export default function UserPage() {
     const payload = {
       exportedAtISO: new Date().toISOString(),
       profile,
-      intake: loadIntake<any>() ?? {},
+      intake: loadIntake<{ goal?: string }>() ?? {},
       state: loadState<ChallengeState>() ?? initChallengeState(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -80,8 +82,9 @@ export default function UserPage() {
         setProfile(data.profile as UserProfile);
       }
       toast.success("Import complete");
-    } catch (e: any) {
-      toast.error("Import failed", { description: e?.message ?? "Invalid file" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Import failed", { description: msg ?? "Invalid file" });
     } finally {
       ev.target.value = "";
     }

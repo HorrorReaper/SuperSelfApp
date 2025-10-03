@@ -1,11 +1,11 @@
 // lib/checkins.ts
 import { loadState, saveState } from "@/lib/local";
 import { ensureDay } from "@/lib/compute";
-import type { ChallengeState, JournalField, JournalTemplate, MoodLevel } from "@/lib/types";
+import type { ChallengeState, JournalField, JournalTemplate, MoodLevel, DayCheckin } from "@/lib/types";
 import { supabase } from "./supabase";
 
 export function saveDailyCheckin(day: number, mood: MoodLevel, note?: string) {
-  const s = loadState<ChallengeState>();
+  const s = loadState<ChallengeState & { checkins?: DayCheckin[] }>();
   if (!s) return;
   // Attach to day record and a global checkins array
   const d = ensureDay(s.days, day);
@@ -13,8 +13,8 @@ export function saveDailyCheckin(day: number, mood: MoodLevel, note?: string) {
   const moodScore = moodToScore(mood);
   d.mood = moodScore; // keep your existing 1..5 scale if used elsewhere
   // Store a checkins array on state
-  (s as any).checkins = (s as any).checkins ?? [];
-  (s as any).checkins.push({
+  s.checkins = s.checkins ?? [];
+  s.checkins.push({
     day,
     mood,
     note,
@@ -24,8 +24,8 @@ export function saveDailyCheckin(day: number, mood: MoodLevel, note?: string) {
 }
 
 export function hasCheckinFor(day: number): boolean {
-  const s = loadState<ChallengeState>() as any;
-  const arr = s?.checkins as { day: number }[] | undefined;
+  const s = loadState<ChallengeState & { checkins?: DayCheckin[] }>();
+  const arr = s?.checkins;
   return !!arr?.some((c) => c.day === day);
 }
 
@@ -123,7 +123,7 @@ export async function reorderFields(templateId: number, orderedIds: number[]) {
   if (error) throw error;
 }
 
-export async function saveEntry(templateId: number, day: number | null, answers: Record<string, any>) {
+export async function saveEntry(templateId: number, day: number | null, answers: Record<string, unknown>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in");
 

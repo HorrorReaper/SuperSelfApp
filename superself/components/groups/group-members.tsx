@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ export function GroupMembers({ groupId }: { groupId: number }) {
   const [loading, setLoading] = useState(false);
   const [me, setMe] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [ms, mem, uid] = await Promise.all([
@@ -23,20 +23,22 @@ export function GroupMembers({ groupId }: { groupId: number }) {
         meId()
       ]);
       setMembers(ms);
-      setMyRole((mem?.role as any) ?? "none");
+      const role = (mem && typeof mem.role === "string") ? (mem.role as "owner"|"admin"|"member") : "none";
+      setMyRole(role);
       setMe(uid);
     } finally { setLoading(false); }
-  }
+  }, [groupId]);
 
-  useEffect(() => { load(); }, [groupId]);
+  useEffect(() => { load(); }, [load]);
 
   async function setRole(m: GroupMember, role: "admin"|"member") {
     try {
       await updateMemberRole(m.id, role);
       toast.success(`${m.profile?.name ?? m.profile?.username ?? "Member"} → ${role}`);
       load();
-    } catch (e: any) {
-      toast.error("Failed to update role", { description: e?.message });
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      toast.error("Failed to update role", { description: e.message });
     }
   }
 
@@ -45,8 +47,9 @@ export function GroupMembers({ groupId }: { groupId: number }) {
       await removeMember(m.id);
       toast("Removed member");
       load();
-    } catch (e: any) {
-      toast.error("Failed to remove member", { description: e?.message });
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      toast.error("Failed to remove member", { description: e.message });
     }
   }
 

@@ -174,9 +174,11 @@ export function FocusFullscreen() {
           return;
         }
         if (!mounted) return;
-        setSessionTaskText((data as any)?.text ?? null);
-      } catch (err) {
-        // ignore
+        type RawTask = { text?: string } | null;
+        const task = data as RawTask;
+        setSessionTaskText(task?.text ?? null);
+      } catch (_err: unknown) {
+        // ignore non-fatal fetch errors
       }
     })();
     return () => { mounted = false; };
@@ -200,9 +202,10 @@ export function FocusFullscreen() {
       resetTimer(targetSeconds);
       t = loadTimer() ?? initTimer(targetSeconds);
     }
-    if (t && !Array.isArray((t as any).todos)) {
-      (t as any).todos = [];
-      saveTimer(t as any);
+    // Older saved timer objects might lack a proper todos array; ensure it's present
+    if (t && !Array.isArray(t.todos)) {
+      t.todos = [];
+      saveTimer(t);
     }
     setState(t);
 

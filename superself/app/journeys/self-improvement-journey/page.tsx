@@ -42,6 +42,17 @@ import { awardForDayCompletion } from "@/lib/gamification";
 import { toast } from "sonner";
 import { xpProgress } from "@/lib/gamification";
 
+// Raw DB row shape for challenge_days (narrowed from any)
+type RawChallengeDayRow = {
+  day_number?: number | string | null;
+  completed?: boolean | null;
+  credited_to_streak?: boolean | null;
+  habit_minutes?: number | null;
+  sessions?: unknown;
+  completed_at?: string | null;
+  date_iso?: string | null;
+};
+
 export default function DashboardPage() {
   const [intake, setIntake] = useState<Intake | null>(null);
   const [state, setState] = useState<ChallengeState | null>(null);
@@ -65,10 +76,11 @@ export default function DashboardPage() {
     "Celebrate the tiny wins — they build momentum.",
   ];
 
+  const quotesLen = QUOTES.length;
   useEffect(() => {
-    const t = setInterval(() => setQuoteIndex((i) => (i + 1) % QUOTES.length), 4500);
+    const t = setInterval(() => setQuoteIndex((i) => (i + 1) % quotesLen), 4500);
     return () => clearInterval(t);
-  }, []);
+  }, [quotesLen]);
 
   // Normalize overall key; prefer a machine key without spaces
   const goalKey = String(intake?.goal ?? "");
@@ -80,7 +92,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (state?.todayDay && state.todayDay % 7 === 0) {
       const weekIndex = Math.ceil(state.todayDay / 7);
-      const savedWeeks: number[] = (state as any).retrosSaved ?? [];
+  const savedWeeks: number[] = ((state as unknown as { retrosSaved?: number[] })?.retrosSaved) ?? [];
       if (!savedWeeks.includes(weekIndex)) {
         setRetroOpen(true);
       }
@@ -92,7 +104,7 @@ export default function DashboardPage() {
     if (!hasCheckinFor(todayDay)) {
       setTimeout(() => setCheckinOpen(true), 400); // slight delay for nicer UX
     }
-  }, [state?.todayDay]);
+  }, [state]);
 
   // Listen for a custom event (from Navbar mobile menu) to open the MoodCheckin modal
   useEffect(() => {
@@ -142,9 +154,9 @@ export default function DashboardPage() {
         }
         if (!mounted || !rows) return;
 
-        const completed = (rows as any[])
-          .filter((r) => r.completed)
-          .map((r) => r.day_number as number);
+        const completed = (rows as RawChallengeDayRow[])
+          .filter((r) => !!r.completed)
+          .map((r) => Number(r.day_number));
         setServerCompletedDays(completed);
 
         // Merge server rows into local ChallengeState so derived values use server-backed data
@@ -153,12 +165,12 @@ export default function DashboardPage() {
           // ensure days array exists
           local.days = local.days ?? [];
 
-          for (const r of rows as any[]) {
+          for (const r of rows as RawChallengeDayRow[]) {
             const dayNum: number = Number(r.day_number);
             if (!Number.isFinite(dayNum)) continue;
             const existing = local.days.find((d) => d.day === dayNum);
             const dateISO = r.date_iso ? String(r.date_iso) : existing?.dateISO ?? new Date().toISOString().slice(0, 10);
-            const sessions = Array.isArray(r.sessions) ? (r.sessions as any[]) : [];
+            const sessions = Array.isArray(r.sessions) ? (r.sessions as unknown[] as { id: string; minutes: number; startedAt: string; endedAt?: string }[]) : [];
             const completedAtISO = r.completed_at ? new Date(r.completed_at).toISOString() : undefined;
             const credited = typeof r.credited_to_streak === "boolean" ? r.credited_to_streak : existing?.creditedToStreak ?? true;
 
@@ -209,14 +221,14 @@ export default function DashboardPage() {
                 const { data: th, error: thErr } = await getTinyHabitForUser(userId, "30 Day Self Improvement Challenge");
                 if (!thErr && th) {
                   if (!local.tinyHabit && th.config) {
-                    try { local.tinyHabit = th.config; } catch (e) { console.debug("Failed to assign tiny_habit config", e); }
+                    try { local.tinyHabit = th.config; } catch (err: unknown) { console.debug("Failed to assign tiny_habit config", err); }
                   }
                   if ((!local.tinyHabitCompletions || local.tinyHabitCompletions.length === 0) && th.completions) {
                     try {
                       const parsed = Array.isArray(th.completions) ? th.completions : JSON.parse(th.completions);
                       if (Array.isArray(parsed)) local.tinyHabitCompletions = parsed;
-                    } catch (e) {
-                      console.debug("Failed to parse tiny_habit completions", e);
+                    } catch (err: unknown) {
+                      console.debug("Failed to parse tiny_habit completions", err);
                     }
                   }
                 }
@@ -242,10 +254,10 @@ export default function DashboardPage() {
                 }
               }
             }
-          } catch (e) {
-            // ignore fetch errors
-            console.debug("Failed to fetch authoritative XP from server", e);
-          }
+                } catch (err: unknown) {
+                  // ignore fetch errors
+                  console.debug("Failed to fetch authoritative XP from server", err);
+                }
 
           // After merging server rows and (optionally) using rightDay as startDate,
           // compute today's day and persist the merged state so derived values use it.
@@ -261,16 +273,16 @@ export default function DashboardPage() {
                 setPromptOpen(true);
               }
             }
-          } catch (e) {
+          } catch (err: unknown) {
             // fallback: persist without computing todayDay
             saveState(local);
             if (mounted) setState(local);
           }
-        } catch (e) {
-          console.debug("Failed to merge server challenge_days into local state", e);
+        } catch (err: unknown) {
+          console.debug("Failed to merge server challenge_days into local state", err);
         }
-      } catch (e) {
-        console.debug("Failed to fetch challenge_days", e);
+      } catch (err: unknown) {
+        console.debug("Failed to fetch challenge_days", err);
       }
     })();
     return () => { mounted = false };
@@ -295,7 +307,7 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-lg font-medium">No Intake Found</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  It looks like you haven't personalized your 30‑day challenge yet. Intake (your goals and habit choices) is stored locally in your browser.
+                  It looks like you have not personalized your 30‑day challenge yet. Intake (your goals and habit choices) is stored locally in your browser.
                 </p>
                 <div className="mt-3 flex gap-2">
                   <a href="/journeys/self-improvement-journey/journey-intro/steps/step1">
@@ -388,7 +400,7 @@ export default function DashboardPage() {
         // Refresh server list
         const { data: rows } = await supabase.from("challenge_days").select("day_number,completed").order("day_number", { ascending: true });
         if (rows) {
-          const completed = (rows as any[]).filter((r) => r.completed).map((r) => r.day_number as number);
+          const completed = (rows as RawChallengeDayRow[]).filter((r) => !!r.completed).map((r) => Number(r.day_number));
           setServerCompletedDays(completed);
         }
       } catch (e) {
@@ -455,7 +467,7 @@ export default function DashboardPage() {
   function handleRetroSaved() {
     setRetroOpen(false);
     const latest = loadState<ChallengeState>() ?? (state as ChallengeState);
-    const next: any = { ...latest };
+    const next: ChallengeState & { retrosSaved?: number[] } = { ...latest };
     const weekIndex = Math.ceil(todayDay / 7);
     next.retrosSaved = next.retrosSaved ?? [];
     if (!next.retrosSaved.includes(weekIndex)) {

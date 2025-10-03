@@ -14,7 +14,7 @@ import PhotoProofUploader from "@/components/shared/PhotoProofUploader";
 type Props = {
   day: number;
   config: DailyActionConfig;
-  onComplete: (payload: any) => void; // keep for gating “Mark day complete”
+  onComplete: (payload: unknown) => void; // keep for gating “Mark day complete"
   defaultMinutes?: number;
 };
 

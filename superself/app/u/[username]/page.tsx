@@ -1,9 +1,8 @@
 // app/u/[username]/page.tsx
 import { PublicProfileClient } from "./sections";
 
-export default async function PublicProfilePage({ params }: { params: { username: string } }) {
-  // Next.js may provide `params` as a thenable in some setups; await it to follow
-  // the sync-dynamic-apis guidance and avoid using `.username` directly.
+export default async function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  // Next.js provides `params` as a thenable in the app router; await it.
   const { username } = await params as { username: string };
   return (
     <>

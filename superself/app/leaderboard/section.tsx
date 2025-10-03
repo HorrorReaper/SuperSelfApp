@@ -1,7 +1,7 @@
 // app/leaderboard/sections.tsx
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { fetchGlobalLeaderboard, fetchFriendsLeaderboard } from "@/lib/leaderboard";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { fetchGlobalLeaderboard, fetchFriendsLeaderboard, LeaderRow } from "@/lib/leaderboard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { LeaderboardList } from "@/components/leaderboard/leaderboard-list";
@@ -11,10 +11,10 @@ type Period = "alltime" | "7d" | "30d";
 export function LeaderboardClient() {
   const [tab, setTab] = useState<"global"|"friends">("global");
   const [period, setPeriod] = useState<Period>("7d");
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<LeaderRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = tab === "global"
@@ -24,9 +24,9 @@ export function LeaderboardClient() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [tab, period]);
 
-  useEffect(() => { load(); }, [tab, period]);
+  useEffect(() => { load(); }, [load]);
 
   const PeriodSwitch = useMemo(() => (
     <div className="flex gap-2">
@@ -45,7 +45,7 @@ export function LeaderboardClient() {
         {PeriodSwitch}
       </div>
 
-      <Tabs value={tab} onValueChange={(v)=>setTab(v as any)} className="space-y-3">
+  <Tabs value={tab} onValueChange={(v)=>setTab(v === "friends" ? "friends" : "global")} className="space-y-3">
         <TabsList>
           <TabsTrigger value="global">Global</TabsTrigger>
           <TabsTrigger value="friends">Friends</TabsTrigger>

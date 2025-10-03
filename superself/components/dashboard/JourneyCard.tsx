@@ -4,16 +4,31 @@ import { useEffect, useState } from 'react';
 import Journey from './Journey';
 import { fetchJourneysByUserId } from '@/lib/dashboard';
 
+type JourneyRow = {
+  id?: string;
+  journey?: string;
+  journey_id?: string;
+  title?: string;
+  description?: string;
+  image_url?: string;
+  slug?: string;
+  continueHref?: string;
+  exploreHref?: string;
+  continue_href?: string;
+  explore_href?: string;
+  continue_path?: string;
+  explore_path?: string;
+};
+
 export default function JourneyCard({ userid }: { userid?: string }) {
-  const [journeys, setJourneys] = useState<any[]>([]);
+  const [journeys, setJourneys] = useState<JourneyRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-
-        const rows = await fetchJourneysByUserId(userid);
+        const rows = await fetchJourneysByUserId(userid ?? "");
         if (!mounted) return;
         setJourneys(Array.isArray(rows) ? rows : []);
       } catch (err) {
@@ -27,12 +42,12 @@ export default function JourneyCard({ userid }: { userid?: string }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [userid]);
 
-  const mapContinueHref = (j: any) =>
+  const mapContinueHref = (j: JourneyRow) =>
     j?.continueHref ?? j?.continue_href ?? j?.continue_path ?? `/journeys/${j?.slug ?? 'self-improvement-journey'}`;
 
-  const mapExploreHref = (j: any) =>
+  const mapExploreHref = (j: JourneyRow) =>
     j?.exploreHref ?? j?.explore_href ?? j?.explore_path ?? `/journeys/${j?.slug ?? 'self-improvement-journey'}/journey-intro`;
 
   return (
@@ -52,8 +67,8 @@ export default function JourneyCard({ userid }: { userid?: string }) {
         <div className="w-full space-y-4">
           {journeys.map((j, idx) => (
             <Journey
-              key={j.id ?? j.slug ?? idx}
-              id={j.journey_id ?? j.id}
+              key={j.id ?? j.slug ?? String(idx)}
+              id={String(j.journey_id ?? j.id ?? '')}
               title={j.title ?? j.journey ?? `Journey ${idx + 1}`}
               description={j.description ?? ''}
               continueHref={mapContinueHref(j)}

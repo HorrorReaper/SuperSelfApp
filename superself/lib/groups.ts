@@ -39,7 +39,16 @@ export async function fetchMyGroups() {
     .order("group_id", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []).map((r: any) => r.groups as Group);
+  return (data ?? [])
+    .map((row: unknown) => {
+      // RPC returns objects with a `groups` property which may itself be an object
+      // or (rarely) an array when joins behave differently. Normalize safely.
+      if (!row || typeof row !== "object") return null;
+      const groups = (row as { groups?: unknown }).groups;
+      if (Array.isArray(groups)) return groups[0] as Group;
+      return groups as Group | null;
+    })
+    .filter(Boolean) as Group[];
 }
 
 export async function fetchPublicGroups(limit = 50, q?: string) {
@@ -90,7 +99,7 @@ export async function joinGroup(groupId: number) {
   if (!uid) throw new Error("Not signed in");
   const { error } = await supabase
     .from("group_members")
-    .insert([{ group_id: groupId, user_id: uid }], { count: "none" });
+    .insert([{ group_id: groupId, user_id: uid }]);
   if (error) throw error;
 }
 
@@ -109,22 +118,25 @@ export async function fetchGroupMembers(groupId: number) {
   const { data, error } = await supabase.rpc("group_members_list", { p_group_id: groupId });
   if (error) throw error;
 
-  // Map RPC return to GroupMember-like shape
-  return (data ?? []).map((r: any) => ({
-    id: r.id,
-    group_id: r.group_id,
-    user_id: r.user_id,
-    role: r.role,
-    created_at: r.created_at,
-    profile: {
-      id: r.profile_id,
-      username: r.username,
-      name: r.name,
-      avatar_url: r.avatar_url,
-      level: r.level,
-      xp: r.xp,
-    },
-  }));
+  // Map RPC return to GroupMember-like shape (use unknown + narrow to avoid `any`)
+  return (data ?? []).map((r: unknown) => {
+    const obj = (r as Record<string, unknown>) || {};
+    return {
+      id: obj["id"] as number,
+      group_id: obj["group_id"] as number,
+      user_id: obj["user_id"] as string,
+      role: obj["role"] as GroupRole,
+      created_at: obj["created_at"] as string,
+      profile: {
+        id: obj["profile_id"] as string,
+        username: obj["username"] as string | null,
+        name: obj["name"] as string | null,
+        avatar_url: obj["avatar_url"] as string | null,
+        level: obj["level"] as number | null,
+        xp: obj["xp"] as number | null,
+      },
+    } as GroupMember;
+  });
 }
 
 

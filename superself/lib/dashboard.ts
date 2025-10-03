@@ -39,18 +39,22 @@ export async function fetchModules(): Promise<Module[]> {
         throw new Error(`Failed to fetch modules: ${modulesError.message}`);
     }
 
-    // Convert raw data to typed data with proper type assertion
-    const typedModules: Module[] = (modulesData || []).map((module: any) => ({
-        id: module.id,
-        title: module.title,
-        description: module.description,
-        order_index: module.order_index,
-        module_lessons: module.module_lessons.map((ml: any) => ({
-            lesson_id: ml.lesson_id,
+    // Narrow raw DB row shapes to typed modules
+    type RawLesson = { id?: string; title?: string; description?: string };
+    type RawModuleLesson = { lesson_id?: string; lessons?: RawLesson | RawLesson[] };
+    type RawModule = { id?: string; title?: string; description?: string; order_index?: number; module_lessons?: RawModuleLesson[] };
+
+    const typedModules: Module[] = (modulesData || []).map((module: RawModule) => ({
+        id: module.id ?? '',
+        title: module.title ?? '',
+        description: module.description ?? '',
+        order_index: module.order_index ?? 0,
+        module_lessons: (module.module_lessons ?? []).map((ml: RawModuleLesson) => ({
+            lesson_id: ml.lesson_id ?? '',
             lessons: {
-                id: ml.lessons.id,
-                title: ml.lessons.title,
-                description: ml.lessons.description
+                id: Array.isArray(ml.lessons) ? (ml.lessons[0]?.id ?? '') : (ml.lessons?.id ?? ''),
+                title: Array.isArray(ml.lessons) ? (ml.lessons[0]?.title ?? '') : (ml.lessons?.title ?? ''),
+                description: Array.isArray(ml.lessons) ? (ml.lessons[0]?.description ?? '') : (ml.lessons?.description ?? ''),
             }
         }))
     }));
@@ -72,7 +76,7 @@ export async function fetchUserProgress(userId: string): Promise<Progress[]> {
         throw new Error(`Failed to fetch user progress: ${progressError.message}`);
     }
 
-    return progress || [];
+    return (progress || []) as Progress[];
 }
 
 /**
@@ -123,19 +127,22 @@ export async function fetchJourneysByUserId(userId: string): Promise<{ id: strin
     }
     console.log("Fetched journeys (with joined journeys):", journeys);
 
-    return (journeys || []).map((j: any) => {
+    type RawJourneyRow = { id?: string; title?: string; description?: string; image_url?: string; slug?: string };
+    type RawUserJourney = { id?: string; journey?: string; journey_id?: string; title?: string; description?: string; image_url?: string; slug?: string; journeys?: RawJourneyRow | RawJourneyRow[] };
+
+    return (journeys || []).map((jRow: RawUserJourney) => {
         // Supabase may return the related row as an object or an array depending on relationship
-        const joined = j.journeys ?? null;
-        const journeyRow = Array.isArray(joined) ? joined[0] : joined;
+        const joined = jRow.journeys ?? null;
+        const journeyRow: RawJourneyRow | null = Array.isArray(joined) ? (joined[0] ?? null) : (joined ?? null);
 
         return {
-            id: j.id,
-            journey: j.journey ?? journeyRow?.slug,
-            journey_id: j.journey_id ?? null,
-            title: journeyRow?.title ?? j.journey ?? null,
-            description: journeyRow?.description ?? j.description ?? null,
-            image_url: journeyRow?.image_url ?? j.image_url ?? null,
-            slug: journeyRow?.slug ?? null,
+            id: jRow.id ?? '',
+            journey: jRow.journey ?? journeyRow?.slug ?? undefined,
+            journey_id: jRow.journey_id ?? undefined,
+            title: journeyRow?.title ?? jRow.journey ?? undefined,
+            description: journeyRow?.description ?? jRow.description ?? undefined,
+            image_url: journeyRow?.image_url ?? jRow.image_url ?? undefined,
+            slug: journeyRow?.slug ?? undefined,
         };
     });
 }
@@ -149,11 +156,11 @@ export async function fetchAllJourneys(): Promise<{ id: string; title: string; d
         throw new Error(`Failed to fetch all journeys: ${journeysError.message}`);
     }
 
-    return (journeys || []).map(j => ({
-        id: j.id,
-        title: j.title,
-        description: j.description,
-        slug: j.slug,
-        image_url: j.image_url
+    return (journeys || []).map((j: { id?: string; title?: string; description?: string; slug?: string; image_url?: string }) => ({
+        id: j.id ?? '',
+        title: j.title ?? '',
+        description: j.description ?? '',
+        slug: j.slug ?? '',
+        image_url: j.image_url ?? ''
     }));
 }

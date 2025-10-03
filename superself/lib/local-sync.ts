@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import type { ChallengeState } from "@/lib/types";
 import { upsertTinyHabitForUser } from "@/lib/tiny-habits";
 
-let syncTimer: any = null;
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
 export async function mirrorProfileFromState(s: ChallengeState) {
   const { data: auth } = await supabase.auth.getUser();
@@ -11,7 +11,7 @@ export async function mirrorProfileFromState(s: ChallengeState) {
   if (!userId) return;
 
   // debounce to avoid spamming
-  clearTimeout(syncTimer);
+  if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(async () => {
     // Upsert profile summary
     await supabase.from("profiles").upsert({
@@ -39,16 +39,17 @@ export async function mirrorProfileFromState(s: ChallengeState) {
         // upsert in batches if needed (supabase client accepts array)
         await supabase.from("challenge_days").upsert(rows, { onConflict: "user_id,day_number" });
       }
-    } catch (err) {
+    } catch (err: unknown) {
       // best-effort: ignore mirror errors
-      console.error("mirrorProfileFromState: failed to upsert challenge_days", err);
+      if (err instanceof Error) console.error("mirrorProfileFromState: failed to upsert challenge_days", err.message);
+      else console.error("mirrorProfileFromState: failed to upsert challenge_days", err);
     }
     // Best-effort: persist tiny-habit config and completions to tiny_habits table via helper
     try {
       if (s.tinyHabit || (s.tinyHabitCompletions && s.tinyHabitCompletions.length > 0)) {
         await upsertTinyHabitForUser(userId, "30 Day Self Improvement Challenge", s.tinyHabit ?? null, s.tinyHabitCompletions ?? null);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.debug("mirrorProfileFromState: tiny-habit upsert failed (best-effort)", err);
     }
   }, 300);

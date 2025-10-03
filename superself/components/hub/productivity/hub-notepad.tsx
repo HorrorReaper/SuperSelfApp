@@ -23,9 +23,10 @@ export function HubNotepad() {
         await saveScratchpad(content, title);
         setSaving("saved");
         setTimeout(() => setSaving("idle"), 1000);
-      } catch (e: any) {
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
         setSaving("idle");
-        toast.error("Failed to save note", { description: e?.message });
+        toast.error("Failed to save note", { description: errMsg });
       }
     }, 600) as unknown as number;
   }
@@ -39,8 +40,9 @@ export function HubNotepad() {
         if (!mounted) return;
         setTitle(note.title ?? "Scratchpad");
         setContent(note.content ?? "");
-      } catch (e: any) {
-        toast.error("Failed to load notepad", { description: e?.message });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error("Failed to load notepad", { description: msg });
       } finally {
         if (mounted) setLoading(false);
       }
@@ -59,9 +61,10 @@ export function HubNotepad() {
       setSaving("saved");
       setTimeout(() => setSaving("idle"), 1000);
       toast.success("Saved");
-    } catch (e: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
       setSaving("idle");
-      toast.error("Failed to save note", { description: e?.message });
+      toast.error("Failed to save note", { description: msg });
     }
   }
 

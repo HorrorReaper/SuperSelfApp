@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { meId } from "@/lib/social";
 import { sendFriendRequest, acceptRequest, cancelRequest, getFriendships } from "@/lib/social";
+import type { Friendship } from '@/lib/types';
 import * as React from "react";
 
 type Props = {
@@ -14,7 +15,7 @@ type Props = {
 };
 
 export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
-  const [edge, setEdge] = React.useState<any | null>(null);
+  const [edge, setEdge] = React.useState<Friendship | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [isMe, setIsMe] = React.useState(false);
   const [myUid, setMyUid] = React.useState<string | null>(null);
@@ -28,12 +29,12 @@ export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
       setMyUid(uid);
       setIsMe(uid === profile.id);
       const res = await getFriendships();
-      const edgesArr = (res && (res as any).data) ?? [];
-      const e = edgesArr.find((f: any) =>
+      const edgesArr = (res && res.data) ?? [];
+      const e = edgesArr.find((f) =>
         (String(f.requester_id) === uid && String(f.addressee_id) === profile.id)
         || (String(f.requester_id) === profile.id && String(f.addressee_id) === uid)
-      );
-      setEdge(e ?? null);
+      ) ?? null;
+      setEdge(e);
     })().catch(() => {});
     return () => { mounted = false; };
   }, [profile.id]);
@@ -41,13 +42,14 @@ export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
   async function addFriend() {
     setLoading(true);
     try {
-      await sendFriendRequest(profile.id);
-      toast.success("Friend request sent");
-  const res = await getFriendships();
-  const edgesArr = (res && (res as any).data) ?? [];
-  setEdge(edgesArr.find((f: any) => (String(f.requester_id) === myUid && String(f.addressee_id) === profile.id)) ?? null);
-    } catch (e: any) {
-      toast.error("Could not send request", { description: e?.message });
+        await sendFriendRequest(profile.id);
+        toast.success("Friend request sent");
+        const res = await getFriendships();
+        const edgesArr = (res && res.data) ?? [];
+        setEdge(edgesArr.find((f) => (String(f.requester_id) === myUid && String(f.addressee_id) === profile.id)) ?? null);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error("Could not send request", { description: msg });
     } finally { setLoading(false); }
   }
 
@@ -57,12 +59,13 @@ export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
       await acceptRequest(edgeId);
       toast.success("Friend request accepted");
       const res = await getFriendships();
-      const edgesArr = (res && (res as any).data) ?? [];
-      setEdge(edgesArr.find((f: any) =>
+      const edgesArr = (res && res.data) ?? [];
+      setEdge(edgesArr.find((f) =>
         (String(f.requester_id) === profile.id && String(f.addressee_id) === myUid) || (String(f.requester_id) === myUid && String(f.addressee_id) === profile.id)
       ) ?? null);
-    } catch (e: any) {
-      toast.error("Could not accept", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not accept", { description: msg });
     } finally { setLoading(false); }
   }
 
@@ -72,8 +75,9 @@ export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
       await cancelRequest(edgeId);
       toast("Request canceled");
       setEdge(null);
-    } catch (e: any) {
-      toast.error("Could not cancel", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not cancel", { description: msg });
     } finally { setLoading(false); }
   }
 

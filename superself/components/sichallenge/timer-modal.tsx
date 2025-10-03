@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
@@ -58,17 +58,18 @@ export function TimerModal({ open, onOpenChange, defaultMinutes, onReachedEighty
     // Load existing timer (or initialize) and sync minutes state so UI reflects saved target
     let t = loadTimer() ?? initTimer(defaultMinutes * 60);
     // Normalize missing fields from older saves
-    if (t && !Array.isArray((t as any).todos)) {
-      (t as any).todos = [];
-      saveTimer(t as any);
+    if (t && !Array.isArray(t.todos)) {
+      // At runtime older saved objects may lack the todos array; ensure it's present
+      t.todos = [];
+      saveTimer(t);
     }
     if (!t.isRunning && t.targetSeconds !== defaultMinutes * 60) {
       resetTimer(defaultMinutes * 60);
       // re-load after reset
       t = loadTimer() ?? initTimer(defaultMinutes * 60);
-      if (t && !Array.isArray((t as any).todos)) {
-        (t as any).todos = [];
-        saveTimer(t as any);
+      if (t && !Array.isArray(t.todos)) {
+        t.todos = [];
+        saveTimer(t);
       }
     }
     setState(t);

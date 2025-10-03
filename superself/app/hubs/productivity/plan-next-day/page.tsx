@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ export default function PlanNextDayPage() {
       setTasks((t ?? []) as Task[]);
       setLoading(false);
     })();
-  }, [planDate, supabase]);
+  }, [planDate]);
 
   function addBlock() {
     setBlocks([...blocks, { start: "09:00", end: "10:00", title: "Focus Block", kind: "focus", task_id: null }]);

@@ -1,14 +1,23 @@
 const INTAKE_KEY = "challenge:intake";
 const STATE_KEY = "challenge:state";
 
-export function saveIntake(intake: any) {
+export function saveIntake<T = unknown>(intake: T) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(INTAKE_KEY, JSON.stringify(intake));
+  try {
+    localStorage.setItem(INTAKE_KEY, JSON.stringify(intake));
+  } catch (err: unknown) {
+    console.debug("saveIntake failed", err);
+  }
 }
-export function loadIntake<T = any>(): T | null {
+export function loadIntake<T = unknown>(): T | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(INTAKE_KEY);
-  return raw ? (JSON.parse(raw) as T) : null;
+  try {
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch (err: unknown) {
+    console.debug("loadIntake JSON parse failed", err);
+    return null;
+  }
 }
 
 import { mirrorProfileFromState } from "./local-sync";
@@ -34,9 +43,10 @@ export function saveState(state: ChallengeState) {
     // Notify same‑tab listeners (cross‑tab updates already trigger "storage")
     mirrorProfileFromState(state); // best-effort async mirror to server
     window.dispatchEvent(new CustomEvent(STATE_UPDATED_EVENT));
-  } catch (err) {
+  } catch (err: unknown) {
     // Optional: log or handle quota errors
-    console.error("saveState failed", err);
+    if (err instanceof Error) console.error("saveState failed", err.message);
+    else console.error("saveState failed", err);
   }
 }
 export function setTinyHabit(cfg: TinyHabitConfig) {
@@ -52,8 +62,8 @@ export function setTinyHabit(cfg: TinyHabitConfig) {
       const userId = auth.user?.id;
       if (!userId) return;
       await upsertTinyHabitForUser(userId, "30 Day Self Improvement Challenge", state.tinyHabit ?? null, state.tinyHabitCompletions ?? null);
-    } catch (e) {
-      console.debug("setTinyHabit: server upsert failed (best-effort)", e);
+    } catch (err: unknown) {
+      console.debug("setTinyHabit: server upsert failed (best-effort)", err);
     }
   })();
 }
@@ -77,8 +87,8 @@ export function completeTinyHabit(day: number, done: boolean, minutes?: number, 
       const userId = auth.user?.id;
       if (!userId) return;
       await upsertTinyHabitForUser(userId, "30 Day Self Improvement Challenge", s.tinyHabit ?? null, s.tinyHabitCompletions ?? null); // pass full array 
-    } catch (e) {
-      console.debug("completeTinyHabit: server upsert failed (best-effort)", e);
+    } catch (err: unknown) {
+      console.debug("completeTinyHabit: server upsert failed (best-effort)", err);
     }
   })();
 }

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
 
-export default function FitnessJourneyPage() {
+export default function FitnessJourneyPage(_props?: unknown) {
   const [startWeight, setStartWeight] = useState<number | null>(null);
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
@@ -28,11 +28,11 @@ export default function FitnessJourneyPage() {
         setDeadline(data.deadline);
         setCurrentWeight(Number(data.weight)); // Default to start weight
         // Calculate progress
-        if (data.weight && data.goal) {
+        {/*if (data.weight && data.goal) {
           const total = Math.abs(Number(data.weight) - Number(data.goal));
           const done = Math.abs(Number(data.weight) - Number(data.goal)); // Initially 0 progress
           setProgress(0);
-        }
+        }*/}
       }else{
         console.log("No journey data found");
       }

@@ -34,8 +34,9 @@ export function HubTasks() {
       await addTask({ text: t, essential, frog });
       setText("");
       refresh();
-    } catch (e: any) {
-      toast.error("Could not add task", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not add task", { description: msg });
     } finally { setAdding(false); }
   }
 
@@ -53,8 +54,9 @@ export function HubTasks() {
         }
       }
       refresh();
-    } catch (e: any) {
-      toast.error("Failed to update", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to update", { description: msg });
     }
   }
 
@@ -62,21 +64,24 @@ export function HubTasks() {
     try {
       await setTaskFlags(t.id, { frog: !t.frog, essential: t.essential }); // trigger enforces single frog
       refresh();
-    } catch (e: any) {
-      toast.error("Failed to set frog", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to set frog", { description: msg });
     }
   }
   async function setEssential(t: Task) {
     try {
       await setTaskFlags(t.id, { essential: !t.essential });
       refresh();
-    } catch (e: any) {
-      toast.error("Failed to set essential", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to set essential", { description: msg });
     }
   }
   async function remove(t: Task) {
-    try { await deleteTask(t.id); refresh(); } catch (e: any) {
-      toast.error("Failed to delete", { description: e?.message });
+    try { await deleteTask(t.id); refresh(); } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to delete", { description: msg });
     }
   }
 

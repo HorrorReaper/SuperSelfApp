@@ -1,5 +1,6 @@
-'use client';
+ 'use client';
 import { useEffect, useState } from "react";
+import type { User } from '@supabase/supabase-js';
 import { getCurrentUser } from "@/lib/auth";
 import { fetchModulesWithProgress, Module } from "@/lib/dashboard";
 import ModuleCard from "@/components/dashboard/ModuleCard";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import StartNewJourneyModal from '@/components/dashboard/StartNewJourneyModal';
 
 export default function DashboardPage() {
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [enrichedModules, setEnrichedModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -109,8 +110,8 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="mt-10 space-y-4 flex flex-col items-center mb-10">
-                        <JourneyCard userid={user.id}/>
-                        <StartNewJourneyModal userid={user.id}>
+                        <JourneyCard userid={user?.id} />
+                        <StartNewJourneyModal userid={user?.id}>
                             <Button className="text-center hover:cursor-pointer">Start New Journey</Button>
                         </StartNewJourneyModal>
                     </div>

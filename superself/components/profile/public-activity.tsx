@@ -4,15 +4,16 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { fetchPublicActivity } from "@/lib/social";
+import type { Activity } from '@/lib/types';
 
 export function PublicActivity({ userId }: { userId: string }) {
-  const [rows, setRows] = useState<any[] | null>(null);
+  const [rows, setRows] = useState<Activity[] | null>(null);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      try { const data = await fetchPublicActivity(userId, 20); if (mounted) setRows(data); }
-      catch { setRows([]); }
+  try { const data = await fetchPublicActivity(userId, 20); if (mounted) setRows(data as Activity[]); }
+  catch { setRows([]); }
     })();
     return () => { mounted = false; };
   }, [userId]);

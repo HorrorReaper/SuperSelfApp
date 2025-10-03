@@ -24,9 +24,15 @@ export function loadHubLayout(): WidgetItem[] {
     if (!Array.isArray(parsed)) return defaultHubLayout();
     // massage unknown ids
     const allowed = new Set<WidgetId>(["calendar","tasks","notepad","timer"]);
-    const filtered = parsed.filter((x:any)=> x && allowed.has(x.id) && typeof x.visible === "boolean");
+    const filtered = parsed.filter((x: unknown) => {
+      if (!x || typeof x !== "object") return false;
+      const obj = x as Record<string, unknown>;
+      const id = obj["id"] as string | undefined;
+      const vis = obj["visible"] as unknown;
+      return typeof id === "string" && allowed.has(id as WidgetId) && typeof vis === "boolean";
+    });
     // ensure all default widgets exist at least once
-    const have = new Set(filtered.map((x:any)=>x.id));
+    const have = new Set(filtered.map((x: unknown) => ((x as Record<string, unknown>)["id"] as WidgetId)));
     const missing = defaultHubLayout().filter(x => !have.has(x.id));
     return [...filtered, ...missing];
   } catch {

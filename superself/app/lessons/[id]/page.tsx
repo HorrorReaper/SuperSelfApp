@@ -1,14 +1,16 @@
-'use client'
+ 'use client'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import CompleteLessonButton from '@/components/lesson/CompleteLessonButton';
 import { getCurrentUser } from '@/lib/auth';
+import type { User } from '@supabase/supabase-js';
+import type { Lesson, Progress } from '@/lib/dashboard';
 export default function LessonPage(){
     const {id} = useParams(); // Get the lesson ID from the URL parameters
-    const [lesson, setLesson] = useState<any>(null);
-    const [user, setUser] = useState<any>(null);
-    const [lessonProgress, setLessonProgress] = useState<any>(null);
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [lessonProgress, setLessonProgress] = useState<Progress | null>(null);
     const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -10,7 +10,8 @@ import { todayISO } from "@/lib/convert";
 
 export function NextDayExecute() {
   const router = useRouter();
-  const [plan, setPlan] = useState<any>(null);
+  type PlanRow = { frog_task_id?: number | null; blocks?: { start?: string; end?: string; title?: string; kind?: string }[]; } | null;
+  const [plan, setPlan] = useState<PlanRow>(null);
 
   useEffect(() => {
     (async () => {
@@ -24,7 +25,9 @@ export function NextDayExecute() {
         .maybeSingle();
       setPlan(data ?? null);
     })();
-  }, [supabase]);
+  // supabase is a stable singleton; do not include it in deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- stable singleton
+  }, []);
 
   if (!plan) return (
     <Card>
@@ -42,7 +45,7 @@ export function NextDayExecute() {
       <CardContent className="space-y-3">
         {plan.frog_task_id ? <div className="text-sm">Frog: {plan.frog_task_id}</div> : null}
         <div className="space-y-1">
-          {plan.blocks?.map((b: any, i: number) => (
+          {plan.blocks?.map((b, i: number) => (
             <div key={i} className="flex items-center justify-between text-sm rounded-md border p-2">
               <div>{b.start}–{b.end} • {b.title}</div>
               {b.kind === "focus" ? (

@@ -147,8 +147,11 @@ export function WeeklyRetroModal({ open, onOpenChange, weekIndex, targetMinutesP
     setSummary({ text: summaryText, suggestion });
     // Load previous answers if any
     const key = retroKey(weekIndex);
-    const existing = (s as any)[key] as typeof answers | undefined;
-    if (existing) setAnswers(existing);
+    const raw = (s as unknown as Record<string, unknown>)[key];
+    if (raw && typeof raw === "object") {
+      const existing = raw as { worked?: string; blockers?: string; tweak?: string };
+      setAnswers({ worked: existing.worked ?? "", blockers: existing.blockers ?? "", tweak: existing.tweak ?? "" });
+    }
   }, [open, weekIndex, targetMinutesPerDay]);
 
   function retroKey(idx: number) {
@@ -160,10 +163,11 @@ export function WeeklyRetroModal({ open, onOpenChange, weekIndex, targetMinutesP
     setSaving(true);
     try {
       // 1) Persist answers locally
-      const s = loadState<ChallengeState>();
-      if (!s) return;
-      (s as any)[retroKey(weekIndex)] = answers;
-      saveState(s);
+  const s = loadState<ChallengeState>();
+  if (!s) return;
+  const sRec = s as unknown as Record<string, unknown>;
+  sRec[retroKey(weekIndex)] = answers;
+  saveState(s as ChallengeState);
 
       // 2) Award XP on server (idempotent by (user_id, kind, day))
       const XP = 20; // adjust if you like
@@ -184,8 +188,8 @@ export function WeeklyRetroModal({ open, onOpenChange, weekIndex, targetMinutesP
       // Notify parent that a retro was saved (so it can persist flags, close modals, etc.)
       try {
         if (onSaved) onSaved();
-      } catch (e) {
-        console.error("onSaved callback failed", e);
+      } catch (err: unknown) {
+        console.error("onSaved callback failed", err);
       }
       onOpenChange(false);
     } finally {

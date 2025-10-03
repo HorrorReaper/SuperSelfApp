@@ -2,13 +2,14 @@
 "use client";
 import * as React from "react";
 import { fetchProfileByUsername, fetchLeaderboardSlices } from "@/lib/social";
+import type { PublicProfile } from '@/lib/types';
 import { PublicProfileHeader } from "@/components/profile/public-profile-header";
 import { AchievementsPublicGrid } from "@/components/profile/achievements-public-grid";
 import { PublicActivity } from "@/components/profile/public-activity";
 import { toast } from "sonner";
 
 export function PublicProfileClient({ username }: { username: string }) {
-  const [profile, setProfile] = React.useState<any | null>(null);
+  const [profile, setProfile] = React.useState<PublicProfile | null>(null);
   const [xp7, setXp7] = React.useState(0);
   const [xp30, setXp30] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
@@ -24,8 +25,9 @@ export function PublicProfileClient({ username }: { username: string }) {
         const lb = await fetchLeaderboardSlices(p.id);
         setXp7(lb?.xp_7d ?? 0);
         setXp30(lb?.xp_30d ?? 0);
-      } catch (e: any) {
-        toast.error("Failed to load profile", { description: e?.message });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error("Failed to load profile", { description: msg });
       } finally {
         if (mounted) setLoading(false);
       }

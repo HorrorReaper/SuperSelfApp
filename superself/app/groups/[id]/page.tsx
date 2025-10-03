@@ -1,8 +1,8 @@
 // app/groups/[id]/page.tsx
 import { GroupPageClient } from "./sections";
 
-export default async function GroupPage({ params }: { params: { id: string } }) {
-  const awaited = await params;
+export default async function GroupPage({ params }: { params: Promise<{ id: string }> }) {
+  const awaited = await params as { id: string };
   const id = Number(awaited.id);
   return (
     <>
