@@ -28,6 +28,7 @@ import { getProgress } from "@/lib/timer";
 import { loadIntake, loadState, saveState, completeTinyHabit, setTinyHabit } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
 import { supabase } from "@/lib/supabase";
+import { getTinyHabitForUser } from "@/lib/tiny-habits";
 
 import type { ChallengeState, Intake, MicroBrief } from "@/lib/types";
 
@@ -54,7 +55,7 @@ export default function DashboardPage() {
   const [retroOpen, setRetroOpen] = useState(false);
 
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewBrief, setPreviewBrief] = useState<MicroBrief | null>(null);
+  const [previewBrief, setPreviewBrief] = useState<MicroBrief | null>(null); 
   const [rightDay, setRightDay] = useState<string>("");
   const [quoteIndex, setQuoteIndex] = useState(0);
   const QUOTES = [
@@ -201,6 +202,27 @@ export default function DashboardPage() {
               setRightDay(rightDateISO);
               // Use rightDateISO as authoritative startDate for this challenge
               local.startDateISO = rightDateISO;
+            }
+            // Best-effort: hydrate tiny-habit config/completions from tiny_habits table if present
+            try {
+              if (userId) {
+                const { data: th, error: thErr } = await getTinyHabitForUser(userId, "30 Day Self Improvement Challenge");
+                if (!thErr && th) {
+                  if (!local.tinyHabit && th.config) {
+                    try { local.tinyHabit = th.config; } catch (e) { console.debug("Failed to assign tiny_habit config", e); }
+                  }
+                  if ((!local.tinyHabitCompletions || local.tinyHabitCompletions.length === 0) && th.completions) {
+                    try {
+                      const parsed = Array.isArray(th.completions) ? th.completions : JSON.parse(th.completions);
+                      if (Array.isArray(parsed)) local.tinyHabitCompletions = parsed;
+                    } catch (e) {
+                      console.debug("Failed to parse tiny_habit completions", e);
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.debug("Failed to hydrate tiny-habit from tiny_habits", e);
             }
             if (userId) {
               const { data: lb, error: lbErr } = await supabase

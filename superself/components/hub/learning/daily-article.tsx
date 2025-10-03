@@ -1,6 +1,5 @@
 import { getBriefForDay } from "@/lib/brief";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import Link from "next/link";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent} from "@/components/ui/card";
 
 export default function DailyArticle({ day }: { day?: number }) {
   const d = day ?? 1;

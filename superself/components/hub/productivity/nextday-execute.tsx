@@ -53,7 +53,7 @@ export function NextDayExecute() {
             </div>
           ))}
         </div>
-        <Button variant="secondary" onClick={()=>router.push("/plan-next-day")}>Edit Plan</Button>
+        <Button variant="secondary" onClick={()=>router.push("/hubs/productivity/plan-next-day")}>Edit Plan</Button>
       </CardContent>
     </Card>
   );
