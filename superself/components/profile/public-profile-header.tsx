@@ -17,20 +17,24 @@ export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
   const [edge, setEdge] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [isMe, setIsMe] = React.useState(false);
+  const [myUid, setMyUid] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let mounted = true;
     (async () => {
-      const uid = await meId();
+      const uidRaw = await meId();
+      const uid = uidRaw == null ? null : String(uidRaw);
       if (!mounted) return;
+      setMyUid(uid);
       setIsMe(uid === profile.id);
-      const edges = await getFriendships();
-      const e = (edges ?? []).find((f: any) =>
-        (f.requester_id === uid && f.addressee_id === profile.id)
-        || (f.requester_id === profile.id && f.addressee_id === uid)
+      const res = await getFriendships();
+      const edgesArr = (res && (res as any).data) ?? [];
+      const e = edgesArr.find((f: any) =>
+        (String(f.requester_id) === uid && String(f.addressee_id) === profile.id)
+        || (String(f.requester_id) === profile.id && String(f.addressee_id) === uid)
       );
       setEdge(e ?? null);
-    })().catch(()=>{});
+    })().catch(() => {});
     return () => { mounted = false; };
   }, [profile.id]);
 
@@ -39,8 +43,9 @@ export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
     try {
       await sendFriendRequest(profile.id);
       toast.success("Friend request sent");
-      const edges = await getFriendships();
-      setEdge((edges ?? []).find((f: any) => (f.requester_id === (await meId()) && f.addressee_id === profile.id)) ?? null);
+  const res = await getFriendships();
+  const edgesArr = (res && (res as any).data) ?? [];
+  setEdge(edgesArr.find((f: any) => (String(f.requester_id) === myUid && String(f.addressee_id) === profile.id)) ?? null);
     } catch (e: any) {
       toast.error("Could not send request", { description: e?.message });
     } finally { setLoading(false); }
@@ -51,9 +56,10 @@ export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
     try {
       await acceptRequest(edgeId);
       toast.success("Friend request accepted");
-      const edges = await getFriendships();
-      setEdge((edges ?? []).find((f: any) =>
-        (f.requester_id === profile.id && f.addressee_id === (await meId())) || (f.requester_id === (await meId()) && f.addressee_id === profile.id)
+      const res = await getFriendships();
+      const edgesArr = (res && (res as any).data) ?? [];
+      setEdge(edgesArr.find((f: any) =>
+        (String(f.requester_id) === profile.id && String(f.addressee_id) === myUid) || (String(f.requester_id) === myUid && String(f.addressee_id) === profile.id)
       ) ?? null);
     } catch (e: any) {
       toast.error("Could not accept", { description: e?.message });
@@ -78,18 +84,15 @@ export function PublicProfileHeader({ profile, xp7, xp30 }: Props) {
     if (edge.status === "accepted") {
       return <Button size="sm" variant="secondary" disabled>Friends</Button>;
     }
-
-    // pending: show appropriate action
-    const myId = edge.requester_id; // we'll check owner by comparing with meId when we fetched (simple fallback):
-    const iRequested = edge.requester_id === undefined ? false : true; // we can't easily know here; simplified logic:
-    // More robust: show both Cancel and Accept depending on who is requester:
+    // pending: show appropriate action depending on who requested
+    const iRequested = myUid !== null && String(edge.requester_id) === myUid;
     return (
       <div className="flex gap-2">
-        {edge.addressee_id === profile.id ? (
-          // I am requester
+        {iRequested ? (
+          // I requested them -> can cancel
           <Button size="sm" variant="secondary" onClick={() => cancel(edge.id)} disabled={loading}>Cancel</Button>
         ) : (
-          // They requested me
+          // They requested me -> can accept or decline
           <>
             <Button size="sm" onClick={() => accept(edge.id)} disabled={loading}>Accept</Button>
             <Button size="sm" variant="secondary" onClick={() => cancel(edge.id)} disabled={loading}>Decline</Button>
