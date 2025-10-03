@@ -1,6 +1,6 @@
 /*"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import {
   sendFriendRequest,
   acceptRequest,
   cancelRequest,
-  blockUser,
   fetchFriendActivities,
   fetchProfilesByIds,
   meId,
@@ -397,7 +396,7 @@ useEffect(() => {
 }*/
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -411,7 +410,6 @@ import {
   sendFriendRequest,
   acceptRequest,
   cancelRequest,
-  blockUser,
   fetchFriendActivities,
   fetchProfilesByIds,
   meId,
@@ -442,27 +440,13 @@ export default function FriendsPage() {
   // NEW: the actual friends list we render
   const [friends, setFriends] = useState<Profile[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      const id = await meId();
-      setMyId(id);
-      await refreshFriendships();
-      await refreshActivity();
-    })();
-  }, []);
-
-  // Also refresh friendships once myId is known (defensive, ensures we re-derive ids)
-  useEffect(() => {
-    if (myId) refreshFriendships();
-  }, [myId]);
-
-  async function refreshFriendships() {
+  const refreshFriendships = useCallback(async () => {
     const { data, error } = await getFriendships();
     if (error) toast.error(error.message);
     setFriendships(data ?? []);
-  }
+  }, []);
 
-  async function refreshActivity() {
+  const refreshActivity = useCallback(async () => {
     const { data, error } = await fetchFriendActivities();
     if (error) {
       toast.error(error.message);
@@ -475,7 +459,22 @@ export default function FriendsPage() {
     const map: Record<string, Profile> = {};
     (profiles ?? []).forEach((p) => (map[p.id] = p));
     setActors(map);
-  }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const id = await meId();
+      setMyId(id);
+      await refreshFriendships();
+      await refreshActivity();
+    })();
+  }, [refreshFriendships, refreshActivity]);
+
+  // Also refresh friendships once myId is known (defensive, ensures we re-derive ids)
+  useEffect(() => {
+    if (myId) refreshFriendships();
+  }, [myId, refreshFriendships]);
+
 
   // Debounced search
   useEffect(() => {
@@ -528,8 +527,7 @@ export default function FriendsPage() {
       }
       setFriends(data ?? []);
     })();
-    // JSON.stringify is fine here given the small array size
-  }, [JSON.stringify(acceptedFriendIds)]);
+  }, [acceptedFriendIds]);
 
   // NEW: collect unique user IDs involved in requests
   const requestUserIds = useMemo(() => {
@@ -553,7 +551,7 @@ export default function FriendsPage() {
       (data ?? []).forEach((p) => (map[p.id] = p));
       setRequestUserMap(map);
     })();
-  }, [requestUserIds.join(",")]);
+  }, [requestUserIds]);
 
   return (
     <div className="max-w-screen-sm mx-auto p-4 space-y-4">

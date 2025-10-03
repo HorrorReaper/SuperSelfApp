@@ -1,41 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { fetchAllJourneys, fetchJourneysByUserId } from '@/lib/dashboard';
+type JourneySummary = { id: string; title: string; description: string; image_url?: string; slug?: string };
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
 export default function StartNewJourneyModal({ children, userid }: { children?: React.ReactNode, userid?: string }) {
     const [open, setOpen] = useState(false);
     const [selectedJourney, setSelectedJourney] = useState('');
-    const [availableJourneys, setAvailableJourneys] = useState<any[]>([]);
-    useEffect(() => {
-        const getJourneys = async () => {
+    const [availableJourneys, setAvailableJourneys] = useState<JourneySummary[]>([]);
+    const getJourneys = useCallback(async () => {
             const journeys = await fetchAllJourneys();
             try {
                 const userId = userid ?? (await getCurrentUser())?.id;
                 if (!userId) {
                     setAvailableJourneys(journeys);
-                    if (journeys.length && !selectedJourney) setSelectedJourney(journeys[0].id);
+                    if (journeys.length) setSelectedJourney((s) => s || journeys[0].id);
                     return;
                 }
 
                 const enrolled = await fetchJourneysByUserId(userId);
-                const enrolledIds = new Set(enrolled.map((e: any) => e.journey_id).filter(Boolean));
-                const enrolledSlugs = new Set(enrolled.map((e: any) => e.slug).filter(Boolean));
+                const enrolledIds = new Set(enrolled.map((e) => e.journey_id).filter(Boolean));
+                const enrolledSlugs = new Set(enrolled.map((e) => e.slug).filter(Boolean));
 
-                const filtered = (journeys || []).filter((j: any) => !enrolledIds.has(j.id) && !enrolledSlugs.has(j.slug));
+                const filtered = (journeys || []).filter((j: JourneySummary) => !enrolledIds.has(j.id) && !enrolledSlugs.has(j.slug));
                 setAvailableJourneys(filtered);
-                if (filtered.length && !selectedJourney) setSelectedJourney(filtered[0].id);
+                if (filtered.length) setSelectedJourney((s) => s || filtered[0].id);
             } catch (e) {
                 console.error('Failed to fetch enrolled journeys, falling back to all journeys', e);
                 setAvailableJourneys(journeys);
-                if (journeys.length && !selectedJourney) setSelectedJourney(journeys[0].id);
+                if (journeys.length) setSelectedJourney((s) => s || journeys[0].id);
             }
-        };
-        getJourneys();
-    }, []);
+        }, [userid]);
+    useEffect(() => { getJourneys(); }, [getJourneys]);
 
     async function startJourney() {
         // Placeholder: integrate with actual creation logic (supabase upsert) later

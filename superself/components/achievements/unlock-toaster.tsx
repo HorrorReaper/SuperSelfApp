@@ -18,7 +18,8 @@ export function AchievementUnlockToaster() {
     const channel = supabase
       .channel("achievements-unlocks")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "achievement_unlocks" }, (payload) => {
-        const key = (payload.new as any)?.key as string;
+        const newRow = (payload.new as unknown) as { key?: string } | undefined;
+        const key = newRow?.key ?? "";
         const title = catalog[key]?.title ?? "Achievement unlocked";
         toast(`🏆 ${title}`, { description: "Nice work!" });
       })

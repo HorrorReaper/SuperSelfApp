@@ -11,9 +11,11 @@ import { FullDayCalendar } from "./full-day-calendar";
 
 type Block = { start: string; end: string; title: string; kind: string };
 
+type PlanRow = { frog_task_id?: number | null; essential_task_ids?: number[]; blocks?: Block[]; notes?: string | null } | null;
+
 export function PlanFAB() {
   const [open, setOpen] = useState(false);
-  const [plan, setPlan] = useState<any>(null);
+  const [plan, setPlan] = useState<PlanRow>(null);
 
   useEffect(() => {
     (async () => {

@@ -67,7 +67,6 @@ export function ExerciseSelectDialog({
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catQuery, open]);
 
   async function addFromCatalog(item: CatalogItem) {
@@ -77,12 +76,14 @@ export function ExerciseSelectDialog({
       toast.success(`Added "${item.name}" to your library`);
       onPick(ex);
       setOpen(false);
-    } catch (e: any) {
-      toast.error("Could not add exercise", { description: e?.message });
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      toast.error("Could not add exercise", { description: e.message });
     }
   }
 
-  function useLibraryExercise(ex: Exercise) {
+  // renamed to avoid ESLint thinking this is a React Hook
+  function handleUseLibraryExercise(ex: Exercise) {
     onPick(ex);
     setOpen(false);
   }
@@ -120,7 +121,7 @@ export function ExerciseSelectDialog({
                         className="flex items-center justify-between rounded-md border p-2"
                       >
                         <div className="text-sm">{ex.name}</div>
-                        <Button size="sm" variant="secondary" onClick={() => useLibraryExercise(ex)}>
+                        <Button size="sm" variant="secondary" onClick={() => handleUseLibraryExercise(ex)}>
                           Use
                         </Button>
                       </div>

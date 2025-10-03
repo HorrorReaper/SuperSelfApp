@@ -43,8 +43,9 @@ function pushLog(s: ChallengeState, amount: number, reason: string, day?: number
 
 // Cross-runtime small uid helper: use crypto.randomUUID when available, otherwise fall back
 function uid() {
-  if (typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function") {
-    return (crypto as any).randomUUID();
+  if (typeof crypto !== "undefined") {
+    const c = crypto as unknown as { randomUUID?: () => string };
+    if (typeof c.randomUUID === "function") return c.randomUUID();
   }
   // fallback - simple RFC4122 v4-ish generator
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {

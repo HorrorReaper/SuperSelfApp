@@ -23,7 +23,11 @@ export async function finishSession(sessionId: number) {
     .select("volume")
     .eq("session_id", sessionId);
   if (sErr) throw sErr;
-  const vol = (sets ?? []).reduce((sum, s: any) => sum + (Number(s.volume ?? 0) || 0), 0);
+  const vol = (sets ?? []).reduce((sum, s: unknown) => {
+    const obj = (s as Record<string, unknown>) || {};
+    const v = Number(obj["volume"] ?? 0) || 0;
+    return sum + v;
+  }, 0);
   const { data, error } = await supabase
     .from("workout_sessions")
     .update({ ended_at: new Date().toISOString(), total_volume: vol })

@@ -1,6 +1,6 @@
 // app/groups/sections.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export function GroupsListClient() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       if (tab === "mine") {
@@ -24,14 +24,21 @@ export function GroupsListClient() {
       } else {
         setDiscover(await fetchPublicGroups(50, q));
       }
-    } finally { setLoading(false); }
-  }
+    } finally {
+      setLoading(false);
+    }
+  }, [tab, q]);
 
-  useEffect(() => { load(); }, [tab]);
   useEffect(() => {
-    const t = setTimeout(() => { if (tab === "discover") load(); }, 350);
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (tab === "discover") load();
+    }, 350);
     return () => clearTimeout(t);
-  }, [q]); // debounce query
+  }, [q, load, tab]); // debounce query
 
   return (
     <div className="space-y-4">
@@ -40,7 +47,11 @@ export function GroupsListClient() {
         <Button asChild><Link href="/groups/new">Create group</Link></Button>
       </div>
 
-      <Tabs value={tab} onValueChange={(v)=>setTab(v as any)} className="space-y-4">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v === "discover" ? "discover" : "mine")}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="mine">My groups</TabsTrigger>
           <TabsTrigger value="discover">Discover</TabsTrigger>

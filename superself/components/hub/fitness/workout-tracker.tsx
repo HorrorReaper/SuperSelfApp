@@ -1,12 +1,12 @@
 // components/fitness/workout-tracker.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
-import { addExercise, listExercises, startSession, finishSession, addSet, listSessions, listSets} from "@/lib/hubs/fitness/workout";
+import { addExercise, listExercises, startSession, finishSession, addSet } from "@/lib/hubs/fitness/workout";
 import { Exercise, WorkoutSession, WorkoutSet } from "@/lib/types";
 import { ExerciseSelectDialog } from "./exercise-select-dialog";
 
@@ -20,10 +20,17 @@ export function WorkoutTracker() {
   const [weight, setWeight] = useState<string>("");
   const [reps, setReps] = useState<string>("");
 
-  async function loadExercises() {
-    try { setExercises(await listExercises()); } catch {}
-  }
-  useEffect(() => { loadExercises(); }, []);
+  const loadExercises = useCallback(async () => {
+    try {
+      const list = await listExercises();
+      setExercises(list);
+    } catch (err: unknown) {
+      // swallow for now; could log if needed
+      if (err instanceof Error) console.info("loadExercises error", err.message);
+    }
+  }, []);
+
+  useEffect(() => { loadExercises(); }, [loadExercises]);
 
   async function begin() {
     try {
@@ -31,8 +38,9 @@ export function WorkoutTracker() {
       setSession(s);
       setSets([]);
       toast("Workout started");
-    } catch (e: any) {
-      toast.error("Could not start", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not start", { description: msg });
     }
   }
 
@@ -43,8 +51,9 @@ export function WorkoutTracker() {
       const ex = await addExercise(name);
       setExercises([...exercises, ex]);
       setNewName("");
-    } catch (e: any) {
-      toast.error("Could not add exercise", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not add exercise", { description: msg });
     }
   }
   function handlePickExercise(ex: Exercise) {
@@ -75,8 +84,9 @@ export function WorkoutTracker() {
       const s = await addSet(session.id, payload);
       setSets([...sets, s]);
       setWeight(""); setReps(""); setCustomExercise("");
-    } catch (e: any) {
-      toast.error("Could not add set", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not add set", { description: msg });
     }
   }
 
@@ -86,8 +96,9 @@ export function WorkoutTracker() {
       const updated = await finishSession(session.id);
       setSession(updated);
       toast.success("Workout finished", { description: `Total volume: ${Math.round(updated.total_volume)}` });
-    } catch (e: any) {
-      toast.error("Could not finish", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not finish", { description: msg });
     }
   }
 

@@ -37,7 +37,8 @@ export default function JourneyIntro() {
       }
       setShowModal(false);
       window.location.href = "/dashboard";
-    } catch (e) {
+    } catch (err: unknown) {
+      if (err instanceof Error) console.error(err);
       setError("An error occurred. Please try again.");
     }
     setSaving(false);
@@ -55,7 +56,7 @@ export default function JourneyIntro() {
         />
         <h1 className="text-4xl font-extrabold mb-4 text-green-700 text-center">Welcome to Your Journey!</h1>
         <p className="mb-6 text-lg text-gray-700 text-center">
-          You're about to start a <span className="text-blue-600 font-semibold">personalized journey</span> designed to help you build healthy habits and reach your goals.
+          You are about to start a <span className="text-blue-600 font-semibold">personalized journey</span> designed to help you build healthy habits and reach your goals.
         </p>
         <ul className="list-disc pl-6 mb-6 text-md text-gray-800">
           <li className="mb-2">Receive <span className="text-green-600 font-medium">daily personalized habits</span> tailored to your needs.</li>
@@ -64,7 +65,7 @@ export default function JourneyIntro() {
           <li>Connect with a <span className="text-blue-600 font-medium">supportive community</span>.</li>
         </ul>
         <p className="text-md text-gray-600 mb-8 text-center">
-          Ready to begin? Let's get started and make lasting changes together!
+          Ready to begin? Let us get started and make lasting changes together!
         </p>
         <button
           className="w-full py-3 px-6 bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold rounded-full shadow-lg hover:scale-105 transition-transform duration-200"

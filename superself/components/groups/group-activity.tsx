@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { fetchGroupActivity } from "@/lib/groups";
 
@@ -17,14 +17,43 @@ export function GroupActivity({ groupId }: { groupId: number }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchGroupActivity(groupId, 50);
-      setRows(data as any);
+      // defensive transformation: Supabase may return joined `actor` as an array or object
+      const raw = (data ?? []) as unknown[];
+      const normalized: Row[] = raw.map((r) => {
+        const rr = r as Record<string, unknown>;
+        const actorRaw = rr.actor;
+        let actor = null as Row['actor'];
+        if (actorRaw) {
+          if (Array.isArray(actorRaw)) {
+            const first = actorRaw[0] as Record<string, unknown> | undefined;
+            actor = first
+              ? { id: String(first.id ?? ""), username: (first.username as string) ?? null, name: (first.name as string) ?? null, avatar_url: (first.avatar_url as string) ?? null }
+              : null;
+          } else {
+            const aObj = actorRaw as Record<string, unknown>;
+            actor = { id: String(aObj.id ?? ""), username: (aObj.username as string) ?? null, name: (aObj.name as string) ?? null, avatar_url: (aObj.avatar_url as string) ?? null };
+          }
+        }
+
+        return {
+          id: Number(rr.id ?? 0),
+          type: (rr.type as Row['type']) ?? "day_complete",
+          created_at: String(rr.created_at ?? ""),
+          day: rr.day == null ? null : Number(rr.day),
+          xp: rr.xp == null ? null : Number(rr.xp),
+          message: rr.message == null ? null : String(rr.message),
+          actor,
+        };
+      });
+      setRows(normalized);
     } finally { setLoading(false); }
-  }
-  useEffect(() => { load(); }, [groupId]);
+  }, [groupId]);
+
+  useEffect(() => { load(); }, [load]);
 
   return (
     <div className="space-y-3">

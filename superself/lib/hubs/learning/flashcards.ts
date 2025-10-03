@@ -132,7 +132,12 @@ export async function recordReview(cardId: number, correct: boolean) {
   // Fetch current card
   const { data: card, error: err } = await supabase.from("flashcards").select("*").eq("id", cardId).single();
   if (err) throw err;
-  const sched = nextSchedule(card as Card, correct);
+  // Narrow card to Card shape before using fields
+  const cardObj = card as Card;
+  const sched = nextSchedule(cardObj, correct);
+
+  const totalReviews = (typeof (cardObj.total_reviews as unknown) === "number") ? (cardObj.total_reviews as number) : 0;
+  const correctReviews = (typeof (cardObj.correct_reviews as unknown) === "number") ? (cardObj.correct_reviews as number) : 0;
 
   const { data, error } = await supabase
     .from("flashcards")
@@ -141,8 +146,8 @@ export async function recordReview(cardId: number, correct: boolean) {
       interval_days: sched.interval_days,
       due_date: sched.due_date,
       last_reviewed_at: new Date().toISOString(),
-      total_reviews: (card as any).total_reviews + 1,
-      correct_reviews: (card as any).correct_reviews + (correct ? 1 : 0),
+      total_reviews: totalReviews + 1,
+      correct_reviews: correctReviews + (correct ? 1 : 0),
     })
     .eq("id", cardId)
     .select("*")

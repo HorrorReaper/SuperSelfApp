@@ -73,7 +73,9 @@ export function MacroTargetsForm() {
     return () => {
       active = false;
     };
-  }, [supabase]);
+  // supabase is a stable singleton and should not be included in deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- stable singleton
+  }, []);
 
   async function handleSave() {
     setSaving(true);

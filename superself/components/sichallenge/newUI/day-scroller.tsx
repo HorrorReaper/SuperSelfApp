@@ -164,7 +164,7 @@ export function DayScroller({
             return (
               <button
                 key={day}
-                ref={(el) => (btnRefs.current[i] = el)}
+                ref={(el) => { btnRefs.current[i] = el; }}
                 onClick={() => onPick(day)}
                 aria-current={isToday ? "date" : undefined}
                 className={cn(

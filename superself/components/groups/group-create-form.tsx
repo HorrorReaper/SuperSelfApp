@@ -27,8 +27,9 @@ export function GroupCreateForm() {
       const g = await createGroup({ name: name.trim(), description: desc.trim() || undefined, visibility, avatar_url: avatarUrl || undefined });
       toast.success("Group created", { description: g.name });
       router.push(`/groups/${g.id}`);
-    } catch (e: any) {
-      toast.error("Could not create group", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not create group", { description: msg });
     } finally { setSubmitting(false); }
   }
 

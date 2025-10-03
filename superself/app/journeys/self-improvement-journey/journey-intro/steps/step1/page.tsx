@@ -192,9 +192,9 @@ export default function Step1Page() {
       return { minutes: baseline };
     })();
 
-    const intake: Intake = {
+    const intake: Partial<Intake> & { keystoneHabit?: KeystoneHabit | null } = {
       goal: primaryGoal as PrimaryGoal,
-      keystoneHabit: habitKey,
+  keystoneHabit: habitKey ?? undefined,
       timeWindow: timeWindow as Intake["timeWindow"],
       reminders,
       baseline: baselineObj,
@@ -205,7 +205,7 @@ export default function Step1Page() {
       supports,
       graceDay,
       note: undefined,
-    };
+  };
 
     try {
       saveIntake(intake);
@@ -215,7 +215,7 @@ export default function Step1Page() {
         setError("You must be logged in to save your journey.");
         return;
       }
-      const {data, error} = await supabase.from("user_journey").upsert({
+      const {error} = await supabase.from("user_journey").upsert({
         user_id: user.id,
         journey: "30 Day Self Improvement Challenge",
       });
@@ -225,7 +225,7 @@ export default function Step1Page() {
       }
       window.location.href = "/journeys/self-improvement-journey";
     } catch (e) {
-      setError("Couldn't save locally. Please try again.");
+      setError("Couldn't save locally. Please try again." + String(e));
     }
   }
 

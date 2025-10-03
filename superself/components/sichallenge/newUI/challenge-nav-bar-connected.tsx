@@ -15,11 +15,12 @@ export function ChallengeNavBarConnected({
   title?: string;
   rightSlot?: React.ReactNode;
 }) {
-  const pathname = usePathname?.() || "/";
+  const pathname = usePathname() || "/";
   // Hide the global navbar on auth pages (sign-in / sign-up and any /auth/*)
-  if (pathname.startsWith("/auth")) {
-    return null;
-  }
+  const hide = pathname.startsWith("/auth");
+
+  // Hooks must be called unconditionally. We still initialize state here and
+  // let the effect be a no-op when `hide` is true.
   const [data, setData] = useState(() => {
     const s = loadState<ChallengeState>();
     const xp = s?.xp ?? 0;
@@ -28,6 +29,7 @@ export function ChallengeNavBarConnected({
   });
 
   useEffect(() => {
+    if (hide) return; // don't attach listeners or fetch when navbar is hidden
     const updateFromLocal = () => {
       const s = loadState<ChallengeState>();
       const xp = s?.xp ?? 0;
@@ -54,7 +56,7 @@ export function ChallengeNavBarConnected({
         const xp = data.xp_alltime ?? 0;
         const p = xpProgress(xp);
         setData({ level: p.level, xpInLevel: p.inLevel, xpNeeded: p.needed, xpPct: p.pct });
-      } catch (e) {
+      } catch {
         updateFromLocal();
       }
     };
@@ -68,8 +70,9 @@ export function ChallengeNavBarConnected({
       window.removeEventListener("challenge:state-updated", fetchFromServer);
       window.removeEventListener("storage", fetchFromServer);
     };
-  }, []);
+  }, [hide]);
 
+  if (hide) return null;
   return (
     <NavBar
       title={title}

@@ -93,20 +93,21 @@ export function TinyHabitCard({ habitType, day, done, onComplete }: Props) {
                 // Notify listeners (same-tab)
                 window.dispatchEvent(new CustomEvent(STATE_UPDATED_EVENT));
               }
-            } catch (e) {
-              // swallow local update errors
-              console.error("local state update failed", e);
-            }
+            } catch (err: unknown) {
+                      // swallow local update errors
+                      console.error("local state update failed", err);
+                    }
           }
         } catch (e) {
           // best-effort; ignore errors
-          console.error("Tiny habit activity insert failed", e);
+                  console.error("Tiny habit activity insert failed", e);
         }
       } else {
         toast.error("XP sync failed", { description: error.message });
       }
-    } catch (e: any) {
-      toast.error("XP sync failed", { description: e?.message ?? "Unknown error" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("XP sync failed", { description: msg ?? "Unknown error" });
     } /*finally {
       setAwarding(false);
     }*/
@@ -117,7 +118,7 @@ export function TinyHabitCard({ habitType, day, done, onComplete }: Props) {
     setRunning(true);
     setSecondsLeft(DURATION_SEC);
     if (timerRef.current) window.clearInterval(timerRef.current);
-    timerRef.current = window.setInterval(() => {
+  timerRef.current = window.setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
           // Finish

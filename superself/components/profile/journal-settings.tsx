@@ -33,8 +33,9 @@ export function JournalSettings() {
       setTemplateId(t.id);
       const fs = await listFields(t.id);
       setFields(fs);
-    } catch (e: any) {
-      toast.error("Failed to load journal", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to load journal", { description: msg });
     }
   }
   useEffect(() => { load(); }, []);
@@ -48,24 +49,26 @@ export function JournalSettings() {
       const f = await createField(templateId, { label, helper: null, type: newType, required: false, options, order_index: fields.length });
       setFields([...fields, f]);
       setNewLabel(""); setNewOptions("");
-    } catch (e: any) {
-      toast.error("Could not add field", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not add field", { description: msg });
     }
   }
 
   async function saveField(f: JournalField) {
     try {
-      const patch: any = { label: f.label, helper: f.helper, type: f.type, required: f.required, options: f.options };
+      const patch = { label: f.label, helper: f.helper, type: f.type, required: f.required, options: f.options };
       await updateField(f.id, patch);
       toast.success("Saved");
-    } catch (e: any) {
-      toast.error("Failed to save", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to save", { description: msg });
     }
   }
 
   async function removeField(id: number) {
-    try { await deleteField(id); setFields(fields.filter(x => x.id !== id)); }
-    catch (e: any) { toast.error("Failed to delete", { description: e?.message }); }
+  try { await deleteField(id); setFields(fields.filter(x => x.id !== id)); }
+  catch (err: unknown) { const msg = err instanceof Error ? err.message : String(err); toast.error("Failed to delete", { description: msg }); }
   }
 
   async function move(id: number, dir: -1 | 1) {

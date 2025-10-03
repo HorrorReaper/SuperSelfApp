@@ -1,6 +1,7 @@
 // components/leaderboard/leaderboard-list.tsx
 "use client";
 import Image from "next/image";
+import type { LeaderRow } from '@/lib/leaderboard';
 
 function initials(name?: string | null) {
   if (!name) return "??";
@@ -12,13 +13,7 @@ export function LeaderboardList({
   rows,
   period,
 }: {
-  rows: Array<{
-    user_id: string;
-    xp_alltime: number;
-    xp_7d: number;
-    xp_30d: number;
-    profile: { id: string; username: string | null; name: string | null; avatar_url: string | null; level: number | null; xp: number | null };
-  }>;
+  rows: LeaderRow[];
   period: "alltime" | "7d" | "30d";
 }) {
   const key = period === "alltime" ? "xp_alltime" : period === "7d" ? "xp_7d" : "xp_30d";
@@ -26,7 +21,7 @@ export function LeaderboardList({
   return (
     <ol className="divide-y divide-border rounded-lg border bg-card">
       {rows.map((r, i) => {
-        const score = (r as any)[key] as number;
+        const score = key === 'xp_alltime' ? r.xp_alltime : key === 'xp_7d' ? r.xp_7d : r.xp_30d;
         const name = r.profile?.name ?? r.profile?.username ?? "Anonymous";
         const src = r.profile?.avatar_url || "";
 

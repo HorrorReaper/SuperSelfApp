@@ -1,6 +1,6 @@
 // app/groups/[id]/sections.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -21,18 +21,21 @@ export function GroupPageClient({ groupId }: { groupId: number }) {
   const [joining, setJoining] = useState(false);
   const [groupXp, setGroupXp] = useState<number | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [g, mem] = await Promise.all([fetchGroup(groupId), fetchMyMembership(groupId)]);
       setGroup(g);
-      setMemberRole((mem?.role as any) ?? "none");
-    } catch (e: any) {
-      toast.error("Failed to load group", { description: e?.message });
-    } finally { setLoading(false); }
-  }
+      setMemberRole((mem?.role ?? "none") as "owner"|"admin"|"member"|"none");
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error("Failed to load group", { description: err.message });
+      else toast.error("Failed to load group");
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId]);
 
-  useEffect(() => { load(); }, [groupId]);
+  useEffect(() => { load(); }, [load]);
 
   // Fetch aggregated group XP (sum of members' profile.xp)
   useEffect(() => {
@@ -53,7 +56,6 @@ export function GroupPageClient({ groupId }: { groupId: number }) {
         setGroupXp(total);
       })
       .catch((err) => {
-        // eslint-disable-next-line no-console
         console.error("fetchGroupLeaderboard failed", err);
         if (mounted) setGroupXp(null);
       });
@@ -66,8 +68,9 @@ export function GroupPageClient({ groupId }: { groupId: number }) {
       await joinGroup(groupId);
       toast.success("Joined group");
       setMemberRole("member");
-    } catch (e: any) {
-      toast.error("Could not join", { description: e?.message });
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error("Could not join", { description: err.message });
+      else toast.error("Could not join");
     } finally { setJoining(false); }
   }
 
@@ -77,8 +80,9 @@ export function GroupPageClient({ groupId }: { groupId: number }) {
       await leaveGroup(groupId);
       toast("Left group");
       setMemberRole("none");
-    } catch (e: any) {
-      toast.error("Could not leave", { description: e?.message });
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error("Could not leave", { description: err.message });
+      else toast.error("Could not leave");
     } finally { setJoining(false); }
   }
 

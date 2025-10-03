@@ -10,7 +10,7 @@ export default function LearningHubPage() {
       <main className="mx-auto max-w-screen-sm p-4 space-y-4">
         <DecksList />
         <PracticePanel />
-        <DailyArticle />
+        <DailyArticle day={1} />
       </main>
     </>
   );

@@ -1,6 +1,6 @@
 // components/learning/practice-panel.tsx
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { listDecks, getPracticeBatch, recordReview, startSession, finishSession} from "@/lib/hubs/learning/flashcards";
 import { awardFlashcardsXP } from "@/lib/xp-server";
 import { loadState } from "@/lib/local";
@@ -31,14 +31,15 @@ export function PracticePanel() {
   const pct = useMemo(() => batch.length ? Math.round((idx / batch.length) * 100) : 0, [idx, batch.length]);
   const current = batch[idx];
 
-  async function loadDecks() {
+  const loadDecks = useCallback(async () => {
     try {
       const ds = await listDecks();
       setDecks(ds);
       if (!deckId && ds[0]) setDeckId(ds[0].id);
     } catch {}
-  }
-  useEffect(() => { loadDecks(); }, []);
+  }, [deckId]);
+
+  useEffect(() => { loadDecks(); }, [loadDecks]);
 
   async function begin() {
     if (!deckId) { toast.error("Pick a deck"); return; }

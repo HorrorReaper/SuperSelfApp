@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { UserExercise } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
 
 export function UserExercisesList({ onSelect }: { onSelect?: (ex: UserExercise) => void }) {
-  const supabase = createClientComponentClient();
   const [items, setItems] = useState<UserExercise[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);

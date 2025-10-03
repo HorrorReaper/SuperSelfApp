@@ -16,6 +16,7 @@ import { awardForMoodCheckin } from "@/lib/gamification";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { getOrCreateTemplate, listFields, saveEntry } from "@/lib/checkins";
+import type { JournalField } from '@/lib/types';
 import { loadState } from "@/lib/local";
 import type { ChallengeState } from "@/lib/types";
 import { awardXpServer } from "@/lib/xp-server";
@@ -37,9 +38,9 @@ const MOODS: { key: MoodLevel; label: string; emoji: string; color: string }[] =
   { key: "not_really",  label: "Not really",  emoji: "😕", color: "bg-amber-500" },
   { key: "terrible",    label: "Terrible",    emoji: "😣", color: "bg-rose-500" },
 ];
-function FieldInput({ f, value, onChange }: { f: any; value: any; onChange: (v:any)=>void }) {
+function FieldInput({ f, value, onChange }: { f: JournalField; value: unknown; onChange: (v: unknown)=>void }) {
   if (f.type === "scale_1_5") {
-    const v = Number(value ?? 3);
+    const v = Number((value as number) ?? 3);
     return (
       <div>
         <div className="flex items-center justify-between">
@@ -64,7 +65,7 @@ function FieldInput({ f, value, onChange }: { f: any; value: any; onChange: (v:a
     return (
       <div>
         <div className="text-sm">{f.label}</div>
-        <Input value={value ?? ""} onChange={(e)=>onChange(e.target.value)} />
+        <Input value={String(value ?? "")} onChange={(e)=>onChange((e.target as HTMLInputElement).value)} />
         {f.helper ? <div className="text-xs text-muted-foreground mt-1">{f.helper}</div> : null}
       </div>
     );
@@ -73,17 +74,17 @@ function FieldInput({ f, value, onChange }: { f: any; value: any; onChange: (v:a
     return (
       <div>
         <div className="text-sm">{f.label}</div>
-        <Textarea value={value ?? ""} onChange={(e)=>onChange(e.target.value)} />
+        <Textarea value={String(value ?? "")} onChange={(e)=>onChange((e.target as HTMLTextAreaElement).value)} />
         {f.helper ? <div className="text-xs text-muted-foreground mt-1">{f.helper}</div> : null}
       </div>
     );
   }
   if (f.type === "select_one") {
-    const items = f.options?.items ?? [];
+    const items = (f.options?.items as string[] | undefined) ?? [];
     return (
       <div>
         <div className="text-sm">{f.label}</div>
-        <Select value={value ?? ""} onValueChange={(v)=>onChange(v)}>
+        <Select value={String(value ?? "")} onValueChange={(v:string)=>onChange(v)}>
           <SelectTrigger><SelectValue placeholder="Choose…" /></SelectTrigger>
           <SelectContent>
             {items.map((opt:string) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
@@ -94,8 +95,8 @@ function FieldInput({ f, value, onChange }: { f: any; value: any; onChange: (v:a
     );
   }
   if (f.type === "select_many") {
-    const items = f.options?.items ?? [];
-    const arr = Array.isArray(value) ? value : [];
+    const items = (f.options?.items as string[] | undefined) ?? [];
+    const arr = Array.isArray(value) ? (value as string[]) : [];
     return (
       <div>
         <div className="text-sm">{f.label}</div>
@@ -252,8 +253,8 @@ const XP_MOOD = 10;
 
 export function MoodCheckinDynamic({ onClose, onSaved }: { onClose?: () => void; onSaved?: () => void }) {
   const [templateId, setTemplateId] = useState<number | null>(null);
-  const [fields, setFields] = useState<any[]>([]);
-  const [values, setValues] = useState<Record<string, any>>({});
+  const [fields, setFields] = useState<JournalField[]>([]);
+  const [values, setValues] = useState<Record<string, unknown>>({});
   const todayDay = (loadState<ChallengeState>()?.todayDay) ?? null;
   const [saving, setSaving] = useState(false);
 
@@ -261,27 +262,33 @@ export function MoodCheckinDynamic({ onClose, onSaved }: { onClose?: () => void;
     (async () => {
       const t = await getOrCreateTemplate();
       setTemplateId(t.id);
-      const fs = await listFields(t.id);
-      setFields(fs);
+  const fs = await listFields(t.id);
+  setFields(fs);
       // prefill defaults
-      const initVals: Record<string, any> = {};
+      const initVals: Record<string, unknown> = {};
       fs.forEach(f => {
         if (f.type === "scale_1_5") initVals[String(f.id)] = 3;
         if (f.type === "boolean") initVals[String(f.id)] = false;
-        if (f.type === "select_many") initVals[String(f.id)] = [];
+        if (f.type === "select_many") initVals[String(f.id)] = [] as string[];
       });
       setValues(initVals);
     })().catch(()=>{});
   }, []);
 
-  function setValue(fid: number, v: any) {
+  function setValue(fid: number, v: unknown) {
     setValues(prev => ({ ...prev, [String(fid)]: v }));
   }
 
   async function save() {
     if (!templateId) return;
     // Simple required validation
-    const missing = fields.filter(f => f.required && (values[String(f.id)] === undefined || values[String(f.id)] === "" || (Array.isArray(values[String(f.id)]) && !values[String(f.id)].length)));
+  const missing = fields.filter(f => {
+    const val = values[String(f.id)];
+    if (!f.required) return false;
+    if (val === undefined || val === "") return true;
+    if (Array.isArray(val)) return val.length === 0;
+    return false;
+  });
     if (missing.length) {
       toast.error("Please fill required fields", { description: missing.map(m=>m.label).join(", ") });
       return;
@@ -300,8 +307,9 @@ export function MoodCheckinDynamic({ onClose, onSaved }: { onClose?: () => void;
       // notify parent that a save completed (so it can e.g. submit mood and close the dialog)
       onSaved?.();
       onClose?.();
-    } catch (e: any) {
-      toast.error("Failed to save", { description: e?.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Failed to save", { description: msg });
     } finally { setSaving(false); }
   }
 

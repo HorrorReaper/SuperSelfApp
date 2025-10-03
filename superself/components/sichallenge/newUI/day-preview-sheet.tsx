@@ -62,7 +62,7 @@ export function DayPreviewSheet({
   const policy = React.useMemo(() => {
     if (!brief) return null;
     return previewMakeupPolicy(brief.day);
-  }, [brief?.day, s?._graceWeekIndex, s?.graceUsedThisWeek, s?.todayDay]);
+  }, [brief]);
 
   // NEW: decide if we show/enable the finish button
   const isPast = !!brief && brief.day < currentToday;
@@ -140,9 +140,11 @@ export function DayPreviewSheet({
                   <CompleteDayButton
                     day={brief.day}
                     enabled={finishEnabled}
-                    onCompleted={() => {
-                      onCompleted?.();
-                      onOpenChange(false);
+                    onChange={(completed) => {
+                      if (completed) {
+                        onCompleted?.();
+                        onOpenChange(false);
+                      }
                     }}
                   />
                 ) : (

@@ -63,7 +63,7 @@ export default function FitnessSetupPage() {
       }
       setLoading(false);
     })();
-  }, [supabase]);
+  }, []);
 
   function parseNum(s: string) {
     const n = Number(s);
@@ -116,7 +116,7 @@ export default function FitnessSetupPage() {
       return;
     }
 
-    const updatePayload: any = {
+    const updatePayload: Record<string, unknown> = {
       unit_preference: unit,
       height_cm: Math.round(normalized.heightCm),
       weight_kg: Number(normalized.weightKg.toFixed(2)),
@@ -217,7 +217,7 @@ export default function FitnessSetupPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Sex</Label>
-                    <Select value={sex} onValueChange={(v) => setSex(v as any)}>
+                    <Select value={sex} onValueChange={(v) => setSex(v as "male" | "female" | "other")}>
                       <SelectTrigger><SelectValue placeholder="Select sex" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="male">Male</SelectItem>
@@ -233,7 +233,7 @@ export default function FitnessSetupPage() {
               {step === 2 && (
                 <section className="space-y-3">
                   <Label>Activity Level</Label>
-                  <Select value={activity} onValueChange={(v) => setActivity(v as any)}>
+                  <Select value={activity} onValueChange={(v) => setActivity(v as "sedentary" | "light" | "moderate" | "active" | "very_active")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sedentary">Sedentary (little/no exercise)</SelectItem>
@@ -250,7 +250,7 @@ export default function FitnessSetupPage() {
               {step === 3 && (
                 <section className="space-y-3">
                   <Label>Goal</Label>
-                  <Select value={goal} onValueChange={(v) => setGoal(v as any)}>
+                  <Select value={goal} onValueChange={(v) => setGoal(v as "lose" | "maintain" | "gain")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="lose">Fat loss (moderate deficit)</SelectItem>

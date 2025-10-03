@@ -15,7 +15,9 @@ export function ProofForm({ userQuestId, squadId }: { userQuestId: string; squad
       const { data, error } = await supabase.storage.from("proofs").upload(path, file);
       if (!error) {
         const { data: url } = await supabase.storage.from("proofs").createSignedUrl(data.path, 60*60*24*7);
-        proof_url = url.signedUrl;
+        if (url && typeof url === 'object' && 'signedUrl' in url && url.signedUrl) {
+          proof_url = url.signedUrl as string;
+        }
       }
     }
     await supabase.from("user_quests").update({ proof_url, note }).eq("id", userQuestId);

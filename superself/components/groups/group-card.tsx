@@ -54,8 +54,9 @@ export function GroupCard({ group, onChanged }: { group: Group; onChanged?: () =
       toast.success(`Joined ${group.name}`);
       setMember({ role: "member" });
       onChanged?.();
-    } catch (e: any) {
-      toast.error("Could not join", { description: e?.message });
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      toast.error("Could not join", { description: e.message });
     } finally { setLoading(false); }
   }
 
@@ -66,8 +67,9 @@ export function GroupCard({ group, onChanged }: { group: Group; onChanged?: () =
       toast("Left group", { description: group.name });
       setMember(null);
       onChanged?.();
-    } catch (e: any) {
-      toast.error("Could not leave", { description: e?.message });
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      toast.error("Could not leave", { description: e.message });
     } finally { setLoading(false); }
   }
 
