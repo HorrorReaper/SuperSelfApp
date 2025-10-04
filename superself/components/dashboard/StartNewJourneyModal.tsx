@@ -42,6 +42,9 @@ export default function StartNewJourneyModal({ children, userid }: { children?: 
             user_id: userid,
             journey_id: selectedJourney
         });
+        if(selectedJourney == "5986b1df-93d5-4da3-b8cd-3eddd28d8d93"){
+            window.location.href = `/journeys/self-improvement-journey/journey-intro`;
+        }
         if (dbError) {
             console.error('Failed to start journey', dbError);
         } else {

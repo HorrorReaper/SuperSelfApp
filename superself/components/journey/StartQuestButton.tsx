@@ -1,11 +1,10 @@
 // app/journey/start-quest-button.tsx
 "use client";
 import { useState } from "react";
-import { createSupabaseClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export default function StartQuestButton({ questId }: { questId: string }) {
   const [state, setState] = useState<"idle"|"running"|"done">("idle");
-  const supabase = createSupabaseClient();
 
   const start = async () => {
     setState("running");
