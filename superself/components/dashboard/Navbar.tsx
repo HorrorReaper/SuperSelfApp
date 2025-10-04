@@ -214,6 +214,9 @@ export function NavBar({
                       <Link href="/friends" onClick={() => setMobileOpen(false)} className="px-2 py-2 text-center rounded-md text-sm text-muted-foreground hover:bg-muted/70">Friends</Link>
                       <Link href="/groups" onClick={() => setMobileOpen(false)} className="px-2 py-2 text-center rounded-md text-sm text-muted-foreground hover:bg-muted/70">Groups</Link>
                       <Link href="/leaderboard" onClick={() => setMobileOpen(false)} className="px-2 py-2 text-center rounded-md text-sm text-muted-foreground hover:bg-muted/70">Board</Link>
+                      <Link href="/hubs/productivity" onClick={() => setMobileOpen(false)} className="px-2 py-2 text-center rounded-md text-sm text-muted-foreground hover:bg-muted/70">Productivity</Link>
+                      <Link href="/hubs/fitness" onClick={() => setMobileOpen(false)} className="px-2 py-2 text-center rounded-md text-sm text-muted-foreground hover:bg-muted/70">Fitness</Link>
+                      <Link href="/hubs/learning" onClick={() => setMobileOpen(false)} className="px-2 py-2 text-center rounded-md text-sm text-muted-foreground hover:bg-muted/70">Learning</Link>
                     </div>
                   </div>
                 </div>

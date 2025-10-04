@@ -25,7 +25,7 @@ import { getLast7Array } from "@/lib/sparkline";
 import { saveCompletedSession } from "@/lib/sessions";
 import { getProgress } from "@/lib/timer";
 
-import { loadIntake, loadState, saveState, completeTinyHabit, setTinyHabit } from "@/lib/local";
+import { loadIntake, loadState, saveState, completeTinyHabit, setTinyHabit, ensureNamespacedLocalState } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
 import { supabase } from "@/lib/supabase";
 import { getTinyHabitForUser } from "@/lib/tiny-habits";
@@ -138,6 +138,8 @@ export default function DashboardPage() {
     // Fetch challenge_days for the current user and merge into local state
     let mounted = true;
     (async () => {
+      // Ensure local keys are namespaced to the authenticated user and migrate legacy keys if any
+      try { await ensureNamespacedLocalState(); } catch (e) { /* best-effort */ }
       // Load intake early so we don't stay stuck on the loading screen
       const i = loadIntake<Intake>();
       if (mounted) setIntake(i);
@@ -555,7 +557,8 @@ export default function DashboardPage() {
           totalDays={totalDays}
           todayDay={todayDay}
           selectedDay={selectedDay}
-          completedDays={serverCompletedDays ?? completedDays}
+          // serverCompletedDays is null while the server fetch is in progress — DayScroller treats null as "syncing"
+          completedDays={serverCompletedDays}
           onPick={(day) => {
             setSelectedDay(day);
             // NEW (optional UX): open preview when a day is picked

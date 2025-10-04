@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { loadState, saveState, loadIntake } from "@/lib/local";
+import { loadState, saveState, loadIntake, ensureNamespacedLocalState } from "@/lib/local";
 import { initChallengeState, computeStreak, adherence, ensureDay } from "@/lib/compute";
 import type { ChallengeState } from "@/lib/types";
 import { loadUserProfile, saveUserProfile, type UserProfile } from "@/lib/user";
@@ -27,11 +27,19 @@ export default function UserPage() {
   const [intakeGoal, setIntakeGoal] = useState<string>("");
 
   useEffect(() => {
-    const s = loadState<ChallengeState>();
-    setState(s ?? initChallengeState());
-    type Intake = { goal?: string } | null | undefined;
-    const intake = loadIntake<Intake>();
-    setIntakeGoal(intake?.goal ?? "");
+    (async () => {
+      try {
+        // Ensure keys are namespaced to the logged-in user and migrate legacy data if needed
+        await ensureNamespacedLocalState();
+      } catch (e) {
+        // best-effort
+      }
+      const s = loadState<ChallengeState>();
+      setState(s ?? initChallengeState());
+      type Intake = { goal?: string } | null | undefined;
+      const intake = loadIntake<Intake>();
+      setIntakeGoal(intake?.goal ?? "");
+    })();
   }, []);
 
   const xp = state?.xp ?? 0;

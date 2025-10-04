@@ -1,17 +1,88 @@
-const INTAKE_KEY = "challenge:intake";
-const STATE_KEY = "challenge:state";
+const INTAKE_KEY_BASE = "challenge:intake";
+const STATE_KEY_BASE = "challenge:state";
+
+// Runtime-selected active keys (set by ensureNamespacedLocalState when user is known).
+declare global {
+  interface Window {
+    __challenge_state_key?: string;
+    __challenge_intake_key?: string;
+  }
+}
+
+function getActiveStateKey() {
+  return window?.__challenge_state_key ?? STATE_KEY_BASE;
+}
+
+function getActiveIntakeKey() {
+  return window?.__challenge_intake_key ?? INTAKE_KEY_BASE;
+}
+
+import { supabase } from "./supabase";
+
+/**
+ * Ensure local storage is namespaced for the currently authenticated user.
+ * If unauthenticated, no change is made. If a legacy global key exists and the
+ * user-specific key does not, the global value will be migrated to the
+ * user-specific key and the global key will be removed.
+ */
+export async function ensureNamespacedLocalState() {
+  if (typeof window === "undefined") return;
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth?.user?.id;
+    if (!userId) return;
+
+    const stateKey = `${STATE_KEY_BASE}:${userId}`;
+    const intakeKey = `${INTAKE_KEY_BASE}:${userId}`;
+
+    // Migrate state
+    try {
+      const existing = window.localStorage.getItem(stateKey);
+      if (!existing) {
+        const legacy = window.localStorage.getItem(STATE_KEY_BASE);
+        if (legacy) {
+          window.localStorage.setItem(stateKey, legacy);
+          window.localStorage.removeItem(STATE_KEY_BASE);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Migrate intake
+    try {
+      const existingIntake = window.localStorage.getItem(intakeKey);
+      if (!existingIntake) {
+        const legacy = window.localStorage.getItem(INTAKE_KEY_BASE);
+        if (legacy) {
+          window.localStorage.setItem(intakeKey, legacy);
+          window.localStorage.removeItem(INTAKE_KEY_BASE);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Mark active keys for synchronous helpers
+    window.__challenge_state_key = stateKey;
+    window.__challenge_intake_key = intakeKey;
+  } catch (err) {
+    // best-effort: ignore
+    console.debug("ensureNamespacedLocalState failed", err);
+  }
+}
 
 export function saveIntake<T = unknown>(intake: T) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(INTAKE_KEY, JSON.stringify(intake));
+    localStorage.setItem(getActiveIntakeKey(), JSON.stringify(intake));
   } catch (err: unknown) {
     console.debug("saveIntake failed", err);
   }
 }
 export function loadIntake<T = unknown>(): T | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(INTAKE_KEY);
+  const raw = localStorage.getItem(getActiveIntakeKey());
   try {
     return raw ? (JSON.parse(raw) as T) : null;
   } catch (err: unknown) {
@@ -23,12 +94,11 @@ export function loadIntake<T = unknown>(): T | null {
 import { mirrorProfileFromState } from "./local-sync";
 import { initChallengeState } from "./compute";
 import type { ChallengeState, TinyHabitCompletion, TinyHabitConfig } from "./types";
-import { supabase } from "./supabase";
 import { upsertTinyHabitForUser } from "./tiny-habits";
 
 export function loadState<T = ChallengeState>(): T | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(STATE_KEY);
+  const raw = localStorage.getItem(getActiveStateKey());
   return raw ? (JSON.parse(raw) as T) : null;
 }
 /*export function saveState(state: ChallengeState) {
@@ -39,7 +109,7 @@ export const STATE_UPDATED_EVENT = "challenge:state-updated";
 export function saveState(state: ChallengeState) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    localStorage.setItem(getActiveStateKey(), JSON.stringify(state));
     // Notify same‑tab listeners (cross‑tab updates already trigger "storage")
     mirrorProfileFromState(state); // best-effort async mirror to server
     window.dispatchEvent(new CustomEvent(STATE_UPDATED_EVENT));
