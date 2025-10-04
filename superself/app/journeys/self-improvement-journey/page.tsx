@@ -25,7 +25,7 @@ import { getLast7Array } from "@/lib/sparkline";
 import { saveCompletedSession } from "@/lib/sessions";
 import { getProgress } from "@/lib/timer";
 
-import { loadIntake, loadState, saveState, completeTinyHabit, setTinyHabit, ensureNamespacedLocalState } from "@/lib/local";
+import { loadIntake, loadState, saveState, saveIntake, fetchIntakeFromServer, upsertIntakeToServer, completeTinyHabit, setTinyHabit, ensureNamespacedLocalState } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
 import { supabase } from "@/lib/supabase";
 import { getTinyHabitForUser } from "@/lib/tiny-habits";
@@ -55,6 +55,7 @@ type RawChallengeDayRow = {
 
 export default function DashboardPage() {
   const [intake, setIntake] = useState<Intake | null>(null);
+  const [intakeSource, setIntakeSource] = useState<'server' | 'local' | 'none' | 'loading'>('loading');
   const [state, setState] = useState<ChallengeState | null>(null);
   const [checkinOpen, setCheckinOpen] = useState(false);
 
@@ -140,9 +141,32 @@ export default function DashboardPage() {
     (async () => {
       // Ensure local keys are namespaced to the authenticated user and migrate legacy keys if any
       try { await ensureNamespacedLocalState(); } catch (e) { /* best-effort */ }
-      // Load intake early so we don't stay stuck on the loading screen
-      const i = loadIntake<Intake>();
-      if (mounted) setIntake(i);
+      // Load intake: prefer server value but fall back to local and migrate if needed
+      try {
+        const serverIntake = await fetchIntakeFromServer<Intake>();
+        if (serverIntake) {
+          if (mounted) setIntake(serverIntake);
+          setIntakeSource('server');
+          // Also persist into namespaced localStorage for offline reads
+          try { saveIntake(serverIntake); } catch {}
+        } else {
+          const localIntake = loadIntake<Intake>();
+          if (localIntake) {
+            // Migrate local intake to server
+            try { await upsertIntakeToServer(localIntake); } catch {}
+            if (mounted) setIntake(localIntake);
+            setIntakeSource('local');
+          } else {
+            if (mounted) setIntake(null);
+            setIntakeSource('none');
+          }
+        }
+      } catch (e) {
+        // fallback to local
+        const i = loadIntake<Intake>();
+        if (mounted) setIntake(i);
+        setIntakeSource(i ? 'local' : 'none');
+      }
       try {
         const { data: rows, error } = await supabase
           .from("challenge_days")
@@ -527,6 +551,17 @@ export default function DashboardPage() {
             <Badge variant="secondary" className="align-middle truncate max-w-xs">
               {intake.goal}
             </Badge>
+            <span className="ml-2">
+              {intakeSource === 'loading' ? (
+                <Badge variant="outline" className="text-xs">Syncing…</Badge>
+              ) : intakeSource === 'server' ? (
+                <Badge variant="outline" className="text-xs">Server</Badge>
+              ) : intakeSource === 'local' ? (
+                <Badge variant="secondary" className="text-xs">Local</Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs text-muted-foreground">—</Badge>
+              )}
+            </span>
             {!isOverall && (
               <>
                 <p className="text-sm text-muted-foreground">· Habit:</p>

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { loadState, saveState, loadIntake, ensureNamespacedLocalState } from "@/lib/local";
+import { loadState, saveState, loadIntake, ensureNamespacedLocalState, fetchIntakeFromServer, upsertIntakeToServer } from "@/lib/local";
 import { initChallengeState, computeStreak, adherence, ensureDay } from "@/lib/compute";
 import type { ChallengeState } from "@/lib/types";
 import { loadUserProfile, saveUserProfile, type UserProfile } from "@/lib/user";
@@ -29,16 +29,25 @@ export default function UserPage() {
   useEffect(() => {
     (async () => {
       try {
-        // Ensure keys are namespaced to the logged-in user and migrate legacy data if needed
         await ensureNamespacedLocalState();
-      } catch (e) {
-        // best-effort
-      }
+      } catch (e) {}
       const s = loadState<ChallengeState>();
       setState(s ?? initChallengeState());
-      type Intake = { goal?: string } | null | undefined;
-      const intake = loadIntake<Intake>();
-      setIntakeGoal(intake?.goal ?? "");
+      // Prefer server intake for profile display
+      try {
+        const serverIntake = await fetchIntakeFromServer<{ goal?: string }>();
+        if (serverIntake) setIntakeGoal(serverIntake.goal ?? "");
+        else {
+          const local = loadIntake<{ goal?: string }>();
+          if (local) {
+            setIntakeGoal(local.goal ?? "");
+            try { await upsertIntakeToServer(local); } catch {}
+          }
+        }
+      } catch (e) {
+        const local = loadIntake<{ goal?: string }>();
+        setIntakeGoal(local?.goal ?? "");
+      }
     })();
   }, []);
 
@@ -60,19 +69,29 @@ export default function UserPage() {
   }
 
   function exportData() {
-    const payload = {
+    let payload: any = {
       exportedAtISO: new Date().toISOString(),
       profile,
-      intake: loadIntake<{ goal?: string }>() ?? {},
+      // will be filled from server or local below
+      intake: undefined,
       state: loadState<ChallengeState>() ?? initChallengeState(),
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "superself-export.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    // fill intake synchronously if possible by fetching server intake
+    (async () => {
+      try {
+        const si = await fetchIntakeFromServer<{ goal?: string }>();
+        payload.intake = si ?? (loadIntake<{ goal?: string }>() ?? {});
+      } catch (e) {
+        payload.intake = loadIntake<{ goal?: string }>() ?? {};
+      }
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "superself-export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    })();
   }
 
   async function importData(ev: React.ChangeEvent<HTMLInputElement>) {

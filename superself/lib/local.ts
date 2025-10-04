@@ -79,6 +79,17 @@ export function saveIntake<T = unknown>(intake: T) {
   } catch (err: unknown) {
     console.debug("saveIntake failed", err);
   }
+  // Best-effort: mirror intake to server for the authenticated user
+  (async () => {
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) return;
+      await supabase.from('user_intake').upsert({ user_id: userId, payload: intake, updated_at: new Date().toISOString() });
+    } catch (err: unknown) {
+      console.debug('saveIntake: server upsert failed (best-effort)', err);
+    }
+  })();
 }
 export function loadIntake<T = unknown>(): T | null {
   if (typeof window === "undefined") return null;
@@ -88,6 +99,35 @@ export function loadIntake<T = unknown>(): T | null {
   } catch (err: unknown) {
     console.debug("loadIntake JSON parse failed", err);
     return null;
+  }
+}
+
+// Fetch intake from server for the authenticated user (returns payload or null)
+export async function fetchIntakeFromServer<T = unknown>(): Promise<T | null> {
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
+    if (!userId) return null;
+    const { data, error } = await supabase.from('user_intake').select('payload').eq('user_id', userId).single();
+    if (error) {
+      // no row or other error
+      return null;
+    }
+    return (data?.payload ?? null) as T | null;
+  } catch (err) {
+    console.debug('fetchIntakeFromServer failed', err);
+    return null;
+  }
+}
+
+export async function upsertIntakeToServer<T = unknown>(payload: T) {
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
+    if (!userId) return;
+    await supabase.from('user_intake').upsert({ user_id: userId, payload, updated_at: new Date().toISOString() });
+  } catch (err) {
+    console.debug('upsertIntakeToServer failed', err);
   }
 }
 
