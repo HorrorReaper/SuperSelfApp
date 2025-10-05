@@ -25,7 +25,7 @@ import { getLast7Array } from "@/lib/sparkline";
 import { saveCompletedSession } from "@/lib/sessions";
 import { getProgress } from "@/lib/timer";
 
-import { loadIntake, loadState, saveState, completeTinyHabit, setTinyHabit } from "@/lib/local";
+import { loadIntake, loadState, saveState, saveIntake, fetchIntakeFromServer, upsertIntakeToServer, completeTinyHabit, setTinyHabit, ensureNamespacedLocalState } from "@/lib/local";
 import { adherence, computeStreak, computeTodayDay, ensureDay, initChallengeState } from "@/lib/compute";
 import { supabase } from "@/lib/supabase";
 import { getTinyHabitForUser } from "@/lib/tiny-habits";
@@ -55,6 +55,7 @@ type RawChallengeDayRow = {
 
 export default function DashboardPage() {
   const [intake, setIntake] = useState<Intake | null>(null);
+  const [intakeSource, setIntakeSource] = useState<'server' | 'local' | 'none' | 'loading'>('loading');
   const [state, setState] = useState<ChallengeState | null>(null);
   const [checkinOpen, setCheckinOpen] = useState(false);
 
@@ -138,16 +139,52 @@ export default function DashboardPage() {
     // Fetch challenge_days for the current user and merge into local state
     let mounted = true;
     (async () => {
-      // Load intake early so we don't stay stuck on the loading screen
-      const i = loadIntake<Intake>();
-      if (mounted) setIntake(i);
+      // Ensure local keys are namespaced to the authenticated user and migrate legacy keys if any
+      try { await ensureNamespacedLocalState(); } catch (e) { /* best-effort */ }
+      // Load intake: prefer server value but fall back to local and migrate if needed
       try {
+        const serverIntake = await fetchIntakeFromServer<Intake>();
+        if (serverIntake) {
+          if (mounted) setIntake(serverIntake);
+          setIntakeSource('server');
+          // Also persist into namespaced localStorage for offline reads
+          try { saveIntake(serverIntake); } catch {}
+        } else {
+          const localIntake = loadIntake<Intake>();
+          if (localIntake) {
+            // Migrate local intake to server
+            try { await upsertIntakeToServer(localIntake); } catch {}
+            if (mounted) setIntake(localIntake);
+            setIntakeSource('local');
+          } else {
+            if (mounted) setIntake(null);
+            setIntakeSource('none');
+          }
+        }
+      } catch (e) {
+        // fallback to local
+        const i = loadIntake<Intake>();
+        if (mounted) setIntake(i);
+        setIntakeSource(i ? 'local' : 'none');
+      }
+      try {
+        // Ensure we have the authenticated user's id before querying rows
+        const { data: authUser } = await supabase.auth.getUser();
+        const currentUserId = authUser?.user?.id;
+        if (!currentUserId) {
+          console.debug("No authenticated user - skipping challenge_days fetch");
+          setServerCompletedDays([]);
+          return;
+        }
+
         const { data: rows, error } = await supabase
           .from("challenge_days")
           .select(
             "day_number,completed,credited_to_streak,habit_minutes,sessions,completed_at,date_iso"
           )
+          .eq("user_id", currentUserId)
           .order("day_number", { ascending: true });
+          console.log("fetched challenge_days", rows, error);
         if (error) {
           console.debug("Supabase fetch challenge_days failed:", error.message);
           return;
@@ -525,6 +562,17 @@ export default function DashboardPage() {
             <Badge variant="secondary" className="align-middle truncate max-w-xs">
               {intake.goal}
             </Badge>
+            <span className="ml-2">
+              {intakeSource === 'loading' ? (
+                <Badge variant="outline" className="text-xs">Syncing…</Badge>
+              ) : intakeSource === 'server' ? (
+                <Badge variant="outline" className="text-xs">Server</Badge>
+              ) : intakeSource === 'local' ? (
+                <Badge variant="secondary" className="text-xs">Local</Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs text-muted-foreground">—</Badge>
+              )}
+            </span>
             {!isOverall && (
               <>
                 <p className="text-sm text-muted-foreground">· Habit:</p>
@@ -555,7 +603,8 @@ export default function DashboardPage() {
           totalDays={totalDays}
           todayDay={todayDay}
           selectedDay={selectedDay}
-          completedDays={serverCompletedDays ?? completedDays}
+          // serverCompletedDays is null while the server fetch is in progress — DayScroller treats null as "syncing"
+          completedDays={serverCompletedDays}
           onPick={(day) => {
             setSelectedDay(day);
             // NEW (optional UX): open preview when a day is picked
@@ -612,8 +661,8 @@ export default function DashboardPage() {
       {!isOverall ? (
         <div className="w-full">
           <ChallengeTodayCard
-            title={titleMap[intake.keystoneHabit]}
-            description={descMap[intake.keystoneHabit]}
+            title={titleMap[intake.keystoneHabit ?? ""]}
+            description={descMap[intake.keystoneHabit ?? ""]}
             targetMinutes={targetMinutes}
             completed={!!dayRec.completed}
             onStart={handleStartTimer}

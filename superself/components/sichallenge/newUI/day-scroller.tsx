@@ -9,7 +9,8 @@ type Props = {
   totalDays?: number;           // default 30
   todayDay: number;             // e.g., 12
   selectedDay: number;          // currently focused/selected day
-  completedDays?: number[];     // list of completed day numbers
+  // When null, server data is still loading (sync in progress). If undefined or an array, use that list.
+  completedDays?: number[] | null;     // list of completed day numbers or null while syncing
   onPick: (day: number) => void;
 };
 
@@ -19,7 +20,7 @@ export function DayScroller({
   totalDays = 30,
   todayDay,
   selectedDay,
-  completedDays = [],
+  completedDays = undefined,
   onPick,
 }: Props) {
   const scrollerRef = React.useRef<HTMLDivElement>(null);
@@ -28,7 +29,8 @@ export function DayScroller({
   const [canLeft, setCanLeft] = React.useState(false);
   const [canRight, setCanRight] = React.useState(false);
 
-  const completedSet = React.useMemo(() => new Set(completedDays), [completedDays]);
+  const isSyncing = completedDays === null;
+  const completedSet = React.useMemo(() => new Set(completedDays ?? []), [completedDays]);
 
   function getState(day: number): DayState {
     if (day === selectedDay) return "selected";
@@ -93,6 +95,12 @@ export function DayScroller({
 
   return (
     <div className="relative">
+      {/* Small sync indicator when server-backed list is being fetched */}
+      {isSyncing && (
+        <div className="absolute right-3 top-3 z-10 text-xs text-muted-foreground bg-background/60 px-2 py-1 rounded">
+          Syncing…
+        </div>
+      )}
       {/* Arrows */}
       <div className="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-between">
         <Button

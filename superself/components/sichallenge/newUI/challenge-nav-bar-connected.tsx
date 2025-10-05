@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { loadState } from "@/lib/local";
+import { loadState, ensureNamespacedLocalState } from "@/lib/local";
 import type { ChallengeState } from "@/lib/types";
 import { xpProgress } from "@/lib/gamification";
 import { NavBar } from "@/components/dashboard/Navbar";
@@ -21,21 +21,22 @@ export function ChallengeNavBarConnected({
 
   // Hooks must be called unconditionally. We still initialize state here and
   // let the effect be a no-op when `hide` is true.
-  const [data, setData] = useState(() => {
+  /*const [data, setData] = useState(() => {
     const s = loadState<ChallengeState>();
     const xp = s?.xp ?? 0;
     const p = xpProgress(xp);
     return { level: p.level, xpInLevel: p.inLevel, xpNeeded: p.needed, xpPct: p.pct };
-  });
+  });*/
+  const [data, setData] = useState(() => ({ level: 0, xpInLevel: 0, xpNeeded: 100, xpPct: 0 }));
 
   useEffect(() => {
     if (hide) return; // don't attach listeners or fetch when navbar is hidden
-    const updateFromLocal = () => {
+    /*const updateFromLocal = () => {
       const s = loadState<ChallengeState>();
       const xp = s?.xp ?? 0;
       const p = xpProgress(xp);
       setData({ level: p.level, xpInLevel: p.inLevel, xpNeeded: p.needed, xpPct: p.pct });
-    };
+    };*/
 
     // Try to fetch authoritative XP from Supabase (best-effort). If user not signed in
     // or the fetch fails, fall back to local state.
@@ -44,25 +45,28 @@ export function ChallengeNavBarConnected({
         const { data: userRes, error: userErr } = await supabase.auth.getUser();
         if (userErr || !userRes?.user) {
           // not signed in -> fall back to local state
-          updateFromLocal();
+          //updateFromLocal();
           return;
         }
         const userId = userRes.user.id;
         const { data, error } = await supabase.from("leaderboards").select("xp_alltime").eq("user_id", userId).single();
         if (error || !data) {
-          updateFromLocal();
+          //updateFromLocal();
           return;
         }
         const xp = data.xp_alltime ?? 0;
         const p = xpProgress(xp);
         setData({ level: p.level, xpInLevel: p.inLevel, xpNeeded: p.needed, xpPct: p.pct });
       } catch {
-        updateFromLocal();
+        //updateFromLocal();
       }
     };
 
     // Initial authoritative fetch
-    fetchFromServer();
+    (async () => {
+      try { await ensureNamespacedLocalState(); } catch (e) { /* best-effort */ }
+      fetchFromServer();
+    })();
     // Re-fetch authoritative server XP when the app updates local state or storage changes.
     window.addEventListener("challenge:state-updated", fetchFromServer);
     window.addEventListener("storage", fetchFromServer);

@@ -24,16 +24,22 @@ export function computeTodayDay(startDateISO: string): number {
 }
 
 export function computeStreak(days: DayProgress[], upToDay?: number): number {
-  // Map by day for quick lookup
-  const map = new Map<number, DayProgress>(days.map(d => [d.day, d]));
-  const limit = upToDay ?? Math.max(0, ...days.map(d => d.day));
+  // Compute the latest consecutive streak ending at `upToDay` (or the most
+  // recent day present). We iterate backwards from the end and count
+  // consecutive days that are completed and credited to the streak.
+  const map = new Map<number, DayProgress>(days.map((d) => [d.day, d]));
+  const lastDay = upToDay ?? (days.length ? Math.max(...days.map((d) => d.day)) : 0);
   let count = 0;
-  for (let d = 1; d <= limit; d++) {
+  for (let d = lastDay; d >= 1; d--) {
     const rec = map.get(d);
+    // missing record or not completed -> streak ends
     if (!rec?.completed) break;
+    // explicitly excluded from streak -> streak ends
     if (rec.creditedToStreak === false) break;
     count++;
   }
+  // debug helper
+  console.log("computeStreak", { lastDay, count });
   return count;
 }
 

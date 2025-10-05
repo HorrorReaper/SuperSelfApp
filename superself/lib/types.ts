@@ -17,7 +17,7 @@ export type KeystoneHabit =
 
 export type Intake = {
   goal: PrimaryGoal;
-  keystoneHabit: KeystoneHabit;
+  keystoneHabit?: KeystoneHabit;
   timeWindow: "morning" | "midday" | "afternoon" | "evening" | "none";
   reminders: { channel: "email" | "push" | "none"; frequency: "daily" | "missed" | "weekly" };
   baseline?: { minutes?: number; steps?: number; sleepWindow?: number };
