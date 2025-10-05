@@ -92,9 +92,12 @@ export function saveIntake<T = unknown>(intake: T) {
   })();
 }
 export function loadIntake<T = unknown>(): T | null {
+  // synchronous local-only loader. Server-first flows should call
+  // fetchIntakeFromServer() (async) and fall back to this function when
+  // the server returns null.
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(getActiveIntakeKey());
   try {
+    const raw = localStorage.getItem(getActiveIntakeKey());
     return raw ? (JSON.parse(raw) as T) : null;
   } catch (err: unknown) {
     console.debug("loadIntake JSON parse failed", err);
@@ -135,6 +138,7 @@ import { mirrorProfileFromState } from "./local-sync";
 import { initChallengeState } from "./compute";
 import type { ChallengeState, TinyHabitCompletion, TinyHabitConfig } from "./types";
 import { upsertTinyHabitForUser } from "./tiny-habits";
+import { loadIntakeFromServer } from "./server";
 
 export function loadState<T = ChallengeState>(): T | null {
   if (typeof window === "undefined") return null;

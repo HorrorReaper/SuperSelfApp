@@ -168,12 +168,23 @@ export default function DashboardPage() {
         setIntakeSource(i ? 'local' : 'none');
       }
       try {
+        // Ensure we have the authenticated user's id before querying rows
+        const { data: authUser } = await supabase.auth.getUser();
+        const currentUserId = authUser?.user?.id;
+        if (!currentUserId) {
+          console.debug("No authenticated user - skipping challenge_days fetch");
+          setServerCompletedDays([]);
+          return;
+        }
+
         const { data: rows, error } = await supabase
           .from("challenge_days")
           .select(
             "day_number,completed,credited_to_streak,habit_minutes,sessions,completed_at,date_iso"
           )
+          .eq("user_id", currentUserId)
           .order("day_number", { ascending: true });
+          console.log("fetched challenge_days", rows, error);
         if (error) {
           console.debug("Supabase fetch challenge_days failed:", error.message);
           return;
@@ -650,8 +661,8 @@ export default function DashboardPage() {
       {!isOverall ? (
         <div className="w-full">
           <ChallengeTodayCard
-            title={titleMap[intake.keystoneHabit]}
-            description={descMap[intake.keystoneHabit]}
+            title={titleMap[intake.keystoneHabit ?? ""]}
+            description={descMap[intake.keystoneHabit ?? ""]}
             targetMinutes={targetMinutes}
             completed={!!dayRec.completed}
             onStart={handleStartTimer}
