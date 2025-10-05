@@ -69,7 +69,12 @@ export default function UserPage() {
   }
 
   function exportData() {
-    let payload: any = {
+    const payload: {
+      exportedAtISO: string;
+      profile: UserProfile;
+      intake?: Record<string, unknown>;
+      state: ChallengeState;
+    } = {
       exportedAtISO: new Date().toISOString(),
       profile,
       // will be filled from server or local below
