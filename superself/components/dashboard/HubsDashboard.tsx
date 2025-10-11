@@ -13,7 +13,6 @@ type Hub = {
   tagline: string;
   description: string;
   image?: string; // placeholder path; you can add real images under public/ later
-  stats?: { label: string; value: string }[];
 };
 
 const HUBS: Hub[] = [
@@ -24,10 +23,7 @@ const HUBS: Hub[] = [
     description:
       "Short guided workouts, movement streaks and tracked sessions to build consistent habits.",
     image: "/images/hubs/fitness.jpg",
-    stats: [
-      { label: "Active challenges", value: "3" },
-      { label: "Members", value: "1.2k" },
-    ],
+
   },
   {
     id: "learning",
@@ -36,10 +32,7 @@ const HUBS: Hub[] = [
     description:
       "Micro-lessons, spaced repetition and curated resources to keep you growing every week.",
     image: "/images/hubs/learning.jpg",
-    stats: [
-      { label: "Courses", value: "24" },
-      { label: "Active learners", value: "5.6k" },
-    ],
+
   },
   {
     id: "productivity",
@@ -48,10 +41,7 @@ const HUBS: Hub[] = [
     description:
       "Focus blocks, planning templates and accountability systems to help you do your best work.",
     image: "/images/hubs/productivity.jpg",
-    stats: [
-      { label: "Active rooms", value: "8" },
-      { label: "Members", value: "940" },
-    ],
+
   },
 ];
 
@@ -92,11 +82,6 @@ export function HubsDashboard() {
 
                     <div className="flex gap-2">
                       <Link href={`/hubs/${hub.id}`} passHref>
-                        <Button asChild variant="ghost" size="sm">
-                          <a aria-label={`Explore ${hub.title}`}>Explore</a>
-                        </Button>
-                      </Link>
-                      <Link href={`/hubs/${hub.id}/open`} passHref>
                         <Button asChild size="sm">
                           <a aria-label={`Open ${hub.title}`}>Open</a>
                         </Button>

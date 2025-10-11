@@ -1,7 +1,7 @@
  'use client';
 import { useEffect, useState } from "react";
 import type { User } from '@supabase/supabase-js';
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getCurrentUsername } from "@/lib/auth";
 import { fetchModulesWithProgress, Module } from "@/lib/dashboard";
 import ModuleCard from "@/components/dashboard/ModuleCard";
 import JourneyCard from "@/components/dashboard/JourneyCard";
@@ -15,6 +15,7 @@ export default function DashboardPage() {
     const [enrichedModules, setEnrichedModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [username, setUsername] = useState<string | null>(null);
 
     useEffect(() => {
         const loadDashboardData = async () => {
@@ -24,12 +25,12 @@ export default function DashboardPage() {
 
                 const user = await getCurrentUser();
                 setUser(user);
-
+                
                 if (!user) {
                     window.location.href = "/auth/sign-in";
                     return;
                 }
-
+                setUsername(await getCurrentUsername(user.id))
                 console.log("User:", user);
 
                 const modulesWithProgress = await fetchModulesWithProgress(user.id);
@@ -86,7 +87,7 @@ export default function DashboardPage() {
         <div className="max-w-4xl mx-auto mt-6 px-4 sm:px-6 overflow-x-hidden">
             <AchievementUnlockToaster />
             <header className="mb-4">
-                <h1 className="text-xl sm:text-2xl font-bold">Welcome back 💪</h1>
+                <h1 className="text-xl sm:text-2xl font-bold">Welcome back {username || "User"}</h1>
                 <h2 className="text-sm sm:text-lg mt-2 font-semibold text-muted-foreground">Your Learning Journey</h2>
             </header>
 

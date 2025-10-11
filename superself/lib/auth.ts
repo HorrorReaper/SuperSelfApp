@@ -35,3 +35,18 @@ export async function getCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser()
   return user
 } // Funktion um den aktuellen Benutzer abzurufen
+
+export async function getCurrentUsername(userId: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("name")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching username:", error);
+    return null;
+  }
+
+  return data?.name || null;
+} // Funktion um den Namen anhand der Benutzer-ID abzurufen

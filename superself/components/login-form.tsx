@@ -72,8 +72,8 @@ export function LoginForm({
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Login"}
+              <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Log in"}
               </Button>
               {error && <div className="text-sm text-red-500">{error}</div>}
               <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
