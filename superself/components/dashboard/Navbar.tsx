@@ -68,7 +68,7 @@ export function NavBar({
         className
       )}
     >
-      <div className="mx-0 sm:mx-auto max-w-screen-sm h-12 px-3 flex items-center gap-3">
+      <div className="mx-0 sm:mx-auto max-w-screen-lg h-12 px-3 flex items-center gap-3">
         {/* Mobile: level + xp on left */}
         <div className="flex items-center gap-3 sm:hidden">
           <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs">

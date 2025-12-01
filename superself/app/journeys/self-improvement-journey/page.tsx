@@ -327,7 +327,7 @@ export default function DashboardPage() {
 
   if (!intake || !state || !derived) {
     return (
-      <div className="max-w-screen-sm mx-auto px-4 py-6">
+      <div className="max-w-screen-sm mx-auto px-4 py-6 md:max-w-screen-md ">
         <h1 className="text-xl font-semibold">Dashboard</h1>
         <div className="mt-3 text-sm text-muted-foreground">Loading…</div>
 
@@ -551,7 +551,7 @@ export default function DashboardPage() {
   })();
 
   return (
-    <div className="max-w-screen-sm mx-auto px-4 py-6 space-y-4 overflow-x-hidden">
+    <div className="max-w-screen-sm mx-auto px-4 py-6 space-y-4  ">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-semibold truncate">30‑Day Challenge</h1>
