@@ -413,3 +413,34 @@ export type Meal = {
   fat_g: number;
   notes: string | null;
 };
+
+
+// ==========================================================  Lessons ==========================================================
+export type TextStep = {
+  type: "text";
+  title?: string;
+  content: string;
+};
+
+export type QuizSingleChoiceStep = {
+  type: "quiz_single_choice";
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+};
+
+export type InputLongFormStep = {
+  type: "input_long_form";
+  prompt: string;
+  storageKey: string;
+};
+
+export type LessonStep =
+  | TextStep
+  | QuizSingleChoiceStep
+  | InputLongFormStep;
+
+export type LessonContent = {
+  steps: LessonStep[];
+};
