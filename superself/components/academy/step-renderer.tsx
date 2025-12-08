@@ -31,7 +31,7 @@ export default function StepRenderer({ step }: Props) {
 }
 
 // Quiz component
-function QuizSingleChoice({ step }: { step: any }) {
+function QuizSingleChoice({ step }: { step: LessonStep & { type: "quiz_single_choice" } }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -95,7 +95,7 @@ function QuizSingleChoice({ step }: { step: any }) {
 }
 
 // Long-form input (for now just local; later you can persist)
-function InputLongForm({ step }: { step: any }) {
+function InputLongForm({ step }: { step: LessonStep & { type: "input_long_form" } }) {
   const [value, setValue] = useState("");
 
   return (
