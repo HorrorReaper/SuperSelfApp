@@ -5,8 +5,25 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
 import { useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { ChevronRight } from "lucide-react";
 
 type ModuleWithLessons = {
+  id: string;
+  title: string;
+  description: string | null;
+  order_index: number;
+  lessons: {
+    id: string;
+    title: string;
+    description: string | null;
+    order_index: number;
+  }[];
+};
+
+type ModuleRow = {
   id: string;
   title: string;
   description: string | null;
@@ -80,10 +97,10 @@ export default function FounderDashboardPage() {
           return;
         }
 
-        const sortedModules = (modulesRaw as any[]).map((m) => ({
+        const sortedModules = (modulesRaw as ModuleRow[]).map((m) => ({
           ...m,
           lessons: (m.lessons || []).sort(
-            (a: any, b: any) => a.order_index - b.order_index
+            (a, b) => a.order_index - b.order_index
           ),
         })) as ModuleWithLessons[];
 
@@ -94,7 +111,7 @@ export default function FounderDashboardPage() {
 
         if (lessonIds.length > 0) {
           const { data: progressRows, error: progressError } = await supabase
-            .from("user_progress")
+            .from("user_lesson_progress")
             .select("lesson_id, status, completed_at")
             .eq("user_id", user.id)
             .in("lesson_id", lessonIds);
@@ -138,17 +155,23 @@ export default function FounderDashboardPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">
-          {skill.name} – Your Validation Journey
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          See all modules and lessons, and track your progress.
-        </p>
-      </header>
+    <div className="max-w-5xl mx-auto py-8 px-4 space-y-8">
+      <Card className="bg-gradient-to-br from-muted/40 to-background border-muted">
+        <CardHeader className="border-b">
+          <CardTitle className="text-3xl">{skill.name}</CardTitle>
+          <CardDescription>Your Validation Journey</CardDescription>
+          <CardAction>
+            <Badge variant="secondary" className="hidden sm:inline">Academy</Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground">
+            See all modules and lessons, and track your progress.
+          </p>
+        </CardContent>
+      </Card>
 
-      <div className="space-y-6">
+      <div className="grid gap-6">
         {modules.map((module) => (
           <ModuleCard
             key={module.id}
@@ -168,31 +191,42 @@ function ModuleCard({
   module: ModuleWithLessons;
   progressByLessonId: Map<string, { status: string; completed_at: string | null }>;
 }) {
+  const totalLessons = module.lessons.length;
+  const completedLessons = module.lessons.reduce((acc, lesson) => {
+    const status = progressByLessonId.get(lesson.id)?.status;
+    return acc + (status === "completed" ? 1 : 0);
+  }, 0);
+  const percent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
   return (
-    <section className="border rounded-lg p-4 space-y-3 bg-card">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h2 className="font-semibold text-lg">{module.title}</h2>
-          {module.description && (
-            <p className="text-xs text-muted-foreground">
-              {module.description}
-            </p>
-          )}
+    <Card>
+      <CardHeader className="border-b">
+        <CardTitle className="text-xl">{module.title}</CardTitle>
+        {module.description && (
+          <CardDescription>{module.description}</CardDescription>
+        )}
+        <CardAction>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">
+              {completedLessons}/{totalLessons} completed
+            </span>
+          </div>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-4">
+        <Progress value={percent} />
+        <div className="space-y-1">
+          {module.lessons.map((lesson) => {
+            const progress = progressByLessonId.get(lesson.id);
+            const status = progress?.status ?? "not_started";
+
+            return (
+              <LessonRow key={lesson.id} lesson={lesson} status={status} />
+            );
+          })}
         </div>
-        {/* You can compute module progress later if you want */}
-      </div>
-
-      <div className="space-y-1">
-        {module.lessons.map((lesson) => {
-          const progress = progressByLessonId.get(lesson.id);
-          const status = progress?.status ?? "not_started";
-
-          return (
-            <LessonRow key={lesson.id} lesson={lesson} status={status} />
-          );
-        })}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -212,15 +246,16 @@ function LessonRow({
 
   const statusColor =
     status === "completed"
-      ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
       : status === "in_progress"
-      ? "bg-blue-100 text-blue-700 border-blue-300"
-      : "bg-slate-100 text-slate-600 border-slate-300";
+      ? "bg-blue-100 text-blue-700 border-blue-200"
+      : "bg-slate-100 text-slate-600 border-slate-200";
 
   return (
     <Link
       href={`/academy/founder/${lesson.id}`}
-      className="flex items-center justify-between gap-3 rounded-md px-3 py-2 hover:bg-muted transition-colors"
+      aria-label={`Open lesson ${lesson.title}`}
+      className="group flex items-center justify-between gap-3 rounded-md px-3 py-2 hover:bg-muted transition-colors"
     >
       <div className="flex flex-col">
         <span className="text-sm font-medium">{lesson.title}</span>
@@ -230,11 +265,12 @@ function LessonRow({
           </span>
         )}
       </div>
-      <span
-        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusColor}`}
-      >
-        {statusLabel}
-      </span>
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className={statusColor}>
+          {statusLabel}
+        </Badge>
+        <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground" aria-hidden="true" />
+      </div>
     </Link>
   );
 }
